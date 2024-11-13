@@ -1,0 +1,11 @@
+.vscode
+__pycache__
+lists
+comp.txt
+found_hashes.txt
+hashes.txt
+lui.txt
+lui_log.txt
+save_data.cfg
+t8_64_found.txt
+
