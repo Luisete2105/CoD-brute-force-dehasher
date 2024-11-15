@@ -1,14 +1,15 @@
+import multiprocessing.sharedctypes
+import os
 import time
 #start_time:float = time.time()
 #print("--- %s seconds ---" % (time.time() - start_time))
 
 import multiprocessing
+from multiprocessing import Process, cpu_count, Value, Array
+import ctypes
 from Classes import module_files
 
-# TEST
-from multiprocessing import Process, Manager, Lock
-from multiprocessing.managers import BaseManager
-# TEST
+
 
 debug:bool = True
 
@@ -27,7 +28,7 @@ class Dehasher_class:
 
         self.working:bool = False
         self.searching_string:str
-        self.cpu_cores:int = multiprocessing.cpu_count()
+        self.cpu_cores:int = cpu_count()
         self.active_searches:int = 0
 
         self.letters = [
@@ -165,26 +166,25 @@ def get_option_input( str_input:str ) -> int:
 def hash_search() -> None:
 
     global global_dehasher
-    global_dehasher.searching_string = module_files.check_savedata_exists( global_dehasher.letters[ 0 ] )
-    print( "Starting dehashing, currently at => "+global_dehasher.searching_string )
 
-    global_dehasher.working = True
+    working = Value( ctypes.c_bool, True )
+    searching_string = Value( ctypes.c_wchar, module_files.check_savedata_exists( global_dehasher.letters[ 0 ] ) )
+    print( "Starting dehashing, currently at => "+searching_string )
 
-    new_thread = Process( target=check_word_combinations, args = [ global_dehasher ] )
+    new_thread = Process( target=check_word_combinations, args = [ working, searching_string.value ] )
+    new_thread.start()
+
     
     start_time:float = time.time()
-    new_thread.start()
-    #new_thread.join()
 
     print("First word check done!")
     print("--- %s seconds ---" % (time.time() - start_time))
 
     #return # Make it a single search for debugging purposes
 
-
     while( True ):
 
-        time.sleep( 0.05 )
+        time.sleep( 0.5 )
 
         print( ">==================<" )
         print("Type '1', 's' or 'show' to see current word and found words\nType '0', 'e' or 'exit' to stop`dehashing")
@@ -195,11 +195,14 @@ def hash_search() -> None:
             print( "\nCurrent word: "+global_dehasher.searching_string+"\n" )
         elif int_input == 1:
             global_dehasher.working = False
+            working.value = False
             break
         else:
             continue
         
+    print("WORKING SET TO FALSE")
 
+    '''
     if new_thread.is_alive():
         print("Waiting for thread to end")
         #new_thread.terminate()
@@ -209,34 +212,24 @@ def hash_search() -> None:
             #new_thread.join()
             print("Killing problematic thread")
             new_thread.terminate()
+    '''
 
 
-
-def check_word_combinations( level:Dehasher_class ) -> None:
-
-    global global_dehasher
-    global_dehasher = level
+def check_word_combinations( working:multiprocessing.sharedctypes.synchronized, searching_string:multiprocessing.sharedctypes.synchronized ) -> None:
 
     print("Starting check_word_combinations\n\n" )
 
-    #string_to_search:str = global_dehasher.searching_string
+    global global_dehasher
 
-    '''
-    new_thread = Thread( target=check_string_hashes, args = [ global_dehasher, string_to_search, ] )
-    global_dehasher.threads.append( new_thread )
-    new_thread.start()
-    '''
-
-    #proc = Process( target=check_string_hashes, args = [ global_dehasher, string_to_search, ] )
+    #proc = Process( target=check_string_hashes, args = [ searching_string, ] )
     #proc.start()
     #proc.join()
-    
-
-    print( f"global_dehasher.working: {global_dehasher.working}" )
 
     #return # Make it a single search for debugging porpuses
+    lui_value = working.value
 
-    while global_dehasher.working:
+    while lui_value:
+    #while working.value:
         time.sleep( 0.25 )
 
         #get_string_to_search( global_dehasher )
@@ -247,9 +240,7 @@ def check_word_combinations( level:Dehasher_class ) -> None:
         #return
 
 
-    print("Search ended at "+global_dehasher.searching_string+"\n\n" )
-
-def check_string_hashes( global_dehasher:Dehasher_class, string:str ) -> None:
+def check_string_hashes( string:multiprocessing.sharedctypes.synchronized ) -> None:
 
 
     if str == None:
@@ -259,14 +250,12 @@ def check_string_hashes( global_dehasher:Dehasher_class, string:str ) -> None:
         print("Error, string is empty to search for hash")
         return
     
-    logger.log_new_message(string+" => Current active searches = "+str(global_dehasher.active_searches)+" | CPU cores = "+str(global_dehasher.cpu_cores) )
+    global global_dehasher
 
-    while global_dehasher.active_searches >= ( global_dehasher.cpu_cores ):
-        if not global_dehasher.working:
-            return
-        time.sleep( 0.5 )
+    module_files.log_new_message( f"Searching " )
 
 
+    '''
     if t7 and os.path.exists( "t7_32.txt" ):
 
         manager_t7_32:class_file_manager = class_file_manager.File_Manager()
@@ -306,7 +295,7 @@ def check_string_hashes( global_dehasher:Dehasher_class, string:str ) -> None:
 
         e_thread = Process( target=class_file_manager.check_existing_hash, args = [ manager_t9_64, string, global_dehasher, class_hasher.get_fnva1_hash] )
         e_thread.start()
-
+    '''
     
 def get_string_to_search( global_dehasher:Dehasher_class ) -> None:
 

@@ -229,7 +229,25 @@ def check_savedata_exists( first_letter:str ) -> str:
     global_files.close_file()
     return first_letter
 
-    
+def write_savedata( new_savedata:str ) -> None:
+
+    global global_files
+
+    if not os.path.exists( "save_data.cfg" ):
+
+        print( "ERROR, cant find save_data.cfg\n" )
+        return
+
+    global global_files
+        
+    if debug:
+        print( f"Saving '{new_savedata}' in save_data.cfg\n" )
+
+    global_files.set_file( "save_data.cfg", "r+" )
+    global_files.write_to_file( new_savedata )
+
+    global_files.close_file()
+ 
 
 
 
