@@ -1,4 +1,4 @@
-debug:bool = False
+debug:bool = True
 
 class Hasher_class:
 
@@ -41,6 +41,7 @@ class Hasher_class:
         if debug:
             print( f"[t7_32] String '{ string }' => { hex( base ) }" )
             
+        return hex(base)
         return int_address_to_string( base )
     
     def t8_32( self, string:str ) -> str:
@@ -56,6 +57,7 @@ class Hasher_class:
         if debug:
             print( f"[t8_32] String '{ string }' => { hex(hash) }" )
 
+        return hex(hash)
         return int_address_to_string( hash )
 
     def fnva1( self, string:str ) -> str:
@@ -69,36 +71,55 @@ class Hasher_class:
         if debug:
             print( f"[fnva1] String '{ string }' => { hex( hash ) }" )
 
+        return hex(hash)
         return int_address_to_string( hash )
 
 # Class Hasher END
 
 global_hasher:Hasher_class = Hasher_class()
 
-def int_address_to_string( hash_int:int ) -> str:
+def int_address_to_string( hash_hex:hex ) -> str:
     
     global debug
     if debug:
-        print( f"[int_address_to_string] Converted Hash | {hash_int} => { str( hex( hash_int ) )[2:] } \n")
+        print( f"[int_address_to_string] Converted Hash | { hash_hex } => { str( hash_hex )[2:] } \n")
     
-    return str( hex( hash_int ) )[2:]
+    return str( hash_hex )[2:]
 
 
-def get_t7_32_hash( word:str ) -> str:
+def get_t7_32_str( word:str ) -> str:
+
+    global global_hasher
+
+    return int_address_to_string( global_hasher.t7_32( word ) )
+
+def get_t8_32_str( word:str ) -> str:
+
+    global global_hasher
+
+    return int_address_to_string( global_hasher.t8_32( word ) )
+
+def get_fnva1_str( word:str ) -> str:
+
+    global global_hasher
+
+    return int_address_to_string( global_hasher.fnva1( word ) )
+
+
+def get_t7_32_hex( word:str ) -> str:
 
     global global_hasher
 
     return global_hasher.t7_32( word )
 
-def get_t8_32_hash( word:str ) -> str:
+def get_t8_32_hex( word:str ) -> str:
 
     global global_hasher
 
     return global_hasher.t8_32( word )
 
-def get_fnva1_hash( word:str ) -> str:
+def get_fnva1_hex( word:str ) -> str:
 
     global global_hasher
 
     return global_hasher.fnva1( word )
-

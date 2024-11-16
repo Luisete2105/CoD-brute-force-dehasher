@@ -2,7 +2,7 @@ from datetime import datetime
 
 import os
 
-debug:bool = False
+debug:bool = True
 
 class Files_class:
 
@@ -110,7 +110,8 @@ def log_new_message( message:str ) -> None:
 
     global debug
     if debug:
-        print( "[log_new_message] message: "+message )
+        #print( "[log_new_message] message: "+message )
+        pass
 
     global global_logger
     global_logger.file.write( datetime.now().strftime("%H:%M:%S")+": "+message+"\n" )
@@ -181,7 +182,7 @@ def get_t9_hashes( comp:Files_class, hashes:Files_class ) -> None:
 
 def write_hashes( lines ) -> None:
 
-    if len( lines ) < 1:
+    if len( lines ) < 1: # Error check
         print("Error, Hashes didnt copy???")
         log_new_message( "Error, Hashes didnt copy???" )
         return
@@ -194,6 +195,20 @@ def write_hashes( lines ) -> None:
 
     temp.sort() # Sort the lines in hexadecimal numbers, otherwise its not accurate for some reason
 
+
+    global_files.file.write( str( hex( temp[0] )+"\n") ) # Now we write the hashes but skip the duplicated ones
+    last_string:hex = hex( temp[0] )
+
+    for i in range(1, len(temp)-1 ):
+
+        if last_string == hex( temp[i] ): # Skip if its the same as the last hash
+            #print("detected duplicated")
+            continue
+
+        global_files.file.write( str( hex( temp[i] )+"\n") )
+        last_string = hex( temp[i] )
+
+    '''
     global_files.file.write( str(hex(temp[0]))[2:]+"\n" ) # Now we write the hashes but skip the duplicated ones
     last_string = str(hex(temp[0]))[2:]+"\n"
 
@@ -205,6 +220,7 @@ def write_hashes( lines ) -> None:
 
         global_files.file.write( str(hex(temp[i]))[2:]+"\n" )
         last_string = str(hex(temp[i]))[2:]+"\n"
+    '''
 
 def check_savedata_exists( first_letter:str ) -> str:
 
@@ -248,6 +264,35 @@ def write_savedata( new_savedata:str ) -> None:
 
     global_files.close_file()
  
+
+
+
+def get_hex_lines( file_name:str ) -> list:
+
+    global global_files
+
+    list_of_hex:list = []
+
+    global_files.set_file( file_name, "r" )
+
+    for line in global_files.file.readlines():
+        #line = line.strip()
+        list_of_hex.append( hex(int(line.strip(), base = 16)) )
+        #log_new_message( f"line '{line}'" )
+    
+    global_files.close_file()
+
+    return list_of_hex
+
+def add_found_hash( found_file_name:str, message:str ) -> None:
+
+    global global_files
+
+    global_files.set_file( found_file_name, "a" )
+    global_files.write_to_file( message )
+
+    global_files.close_file()
+
 
 
 

@@ -1,9 +1,13 @@
 import os
+import ctypes
 import time
 #start_time:float = time.time()
 #print("--- %s seconds ---" % (time.time() - start_time))
 
 from datetime import datetime
+from multiprocessing import Process, Value, Array
+
+import main_dehasher
 
 from Classes import module_hasher
 from Classes import module_files
@@ -91,7 +95,7 @@ def hash_menu() -> None:
         hash:str = input( "\n" ).lower()
 
         print( "Hashing '"+hash+"'\n" )
-        print( f"T7 32 => { module_hasher.get_t7_32_hash( hash ) }\nT8 32 => { module_hasher.get_t8_32_hash( hash ) }\nFNVA1 => { module_hasher.get_fnva1_hash( hash ) }\nDo you want to try another Hash?\n" )
+        print( f"T7 32 => { module_hasher.get_t7_32_str( hash ) }\nT8 32 => { module_hasher.get_t8_32_str( hash ) }\nFNVA1 => { module_hasher.get_fnva1_str( hash ) }\nDo you want to try another Hash?\n" )
 
         try_again:str = input( "Y / Yes | To try another Hash\n" ).lower()
 
@@ -160,9 +164,64 @@ def files_menu() -> None:
 # module_files START
 
 def dehash_menu() -> None:
-    print( "Dehasher menu called" )
 
-    module_dehasher.hash_search()
+    working = Value( ctypes.c_bool, True )
+    searching_string = Array( ctypes.c_char, module_files.check_savedata_exists( module_dehasher.get_first_possible_letter ).encode() )
+    print( f"Starting dehashing, currently at => {searching_string.value.decode()}" )
+
+    new_thread = Process( target=main_dehasher.check_word_combinations, args = [ working, searching_string ] )
+    new_thread.start()
+    #new_thread.join()
+
+    #start_time:float = time.time()
+
+    #print("First word check done!")
+    #print("--- %s seconds ---" % (time.time() - start_time))
+
+    #return # Make it a single search for debugging purposes
+
+    while( True ):
+        time.sleep( 0.5 )
+
+        print( ">==================<" )
+        print("Type '1', 's' or 'show' to see current word and found words\nType '0', 'e' or 'exit' to stop`dehashing")
+        print( ">==================<\n" )
+        int_input:int = get_option_input( input().lower() )
+
+        print( f"input chosen: {int_input}" )
+
+        if int_input == 0:
+            print( f"\nCurrent word: {searching_string.value.decode()}\n" )
+            continue
+        elif int_input == 1:
+            working.value = False
+            break
+        else:
+            continue
+        
+    print("Stopping dehasher")
+
+    return 
+    #if new_thread.is_alive():
+    #    print("Waiting for thread to end")
+        #new_thread.terminate()
+    #    new_thread.join()
+
+        #if new_thread.is_alive():
+            #new_thread.join()
+            #print("Killing problematic thread")
+            #new_thread.terminate()
+
+
+def get_option_input( str_input:str ) -> int:
+
+    if str_input == "1" or str_input == "s" or str_input == "show":
+        return 0
+    if str_input == "0" or str_input == "e" or str_input == "exit":
+        return 1
+    else:
+        return 2
+
 
 
 # module_files END
