@@ -136,8 +136,6 @@ def files_menu() -> None:
     hashes:module_files.Files_class = module_files.Files_class()
     hashes.set_file( "hashes.txt", "r" )
 
-    start_time:float = time.time()
-
     if str_option == "0":
 
         module_files.log_new_message( "T7 selected" )
@@ -156,8 +154,6 @@ def files_menu() -> None:
     del comp
     del hashes
 
-    print("--- %s seconds ---" % (time.time() - start_time))
-
 # module_files END
     
 
@@ -166,17 +162,11 @@ def files_menu() -> None:
 def dehash_menu() -> None:
 
     working = Value( ctypes.c_bool, True )
-    searching_string = Array( ctypes.c_char, module_files.check_savedata_exists( module_dehasher.get_first_possible_letter ).encode() )
+    searching_string = Array( ctypes.c_char, module_files.check_savedata_exists( module_dehasher.get_first_possible_letter() ).encode() )
     print( f"Starting dehashing, currently at => {searching_string.value.decode()}" )
 
     new_thread = Process( target=main_dehasher.check_word_combinations, args = [ working, searching_string ] )
     new_thread.start()
-    #new_thread.join()
-
-    #start_time:float = time.time()
-
-    #print("First word check done!")
-    #print("--- %s seconds ---" % (time.time() - start_time))
 
     #return # Make it a single search for debugging purposes
 
@@ -188,8 +178,6 @@ def dehash_menu() -> None:
         print( ">==================<\n" )
         int_input:int = get_option_input( input().lower() )
 
-        print( f"input chosen: {int_input}" )
-
         if int_input == 0:
             print( f"\nCurrent word: {searching_string.value.decode()}\n" )
             continue
@@ -199,18 +187,15 @@ def dehash_menu() -> None:
         else:
             continue
         
-    print("Stopping dehasher")
+    #print("Stopping dehasher")
 
-    return 
-    #if new_thread.is_alive():
-    #    print("Waiting for thread to end")
-        #new_thread.terminate()
-    #    new_thread.join()
+    if new_thread.is_alive():
+        print("Waiting for thread to end")
+        new_thread.join()
 
-        #if new_thread.is_alive():
-            #new_thread.join()
-            #print("Killing problematic thread")
-            #new_thread.terminate()
+        if new_thread.is_alive():
+            print("ERROR: Killing problematic thread")
+            new_thread.terminate()
 
 
 def get_option_input( str_input:str ) -> int:

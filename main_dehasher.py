@@ -10,13 +10,13 @@ import ctypes
 
 from Classes import module_files
 from Classes import module_hasher
-#from Classes import module_dehasher
+from Classes import module_dehasher
 
 
-debug:bool = True
+debug:bool = False
 
 t7:bool = False
-t8_short:bool = False
+t8_short:bool = True
 t8_long:bool = True
 t9_short:bool = False
 t9_long:bool = False
@@ -24,32 +24,46 @@ t9_long:bool = False
 
 def check_word_combinations( working:multiprocessing.sharedctypes.synchronized, searching_string:multiprocessing.sharedctypes.synchronized ) -> None:
 
-    print( f"pased string {searching_string.value.decode()}" )
+    #print( f"pased string {searching_string.value.decode()}" )
 
-    start_time:float = time.time()
+    current_str_lenght:int = len( searching_string.value.decode() )
+
     proc = Process( target=check_string_hashes, args = [ searching_string.value.decode() ] )
     proc.start()
-    proc.join()
-    print("First word check done!")
-    print("--- %s seconds ---" % (time.time() - start_time))
 
-    return # Make it a single search for debugging porpuses
+
+
+    #return # Make it a single search for debugging porpuses
 
     while working.value:
-        time.sleep( 0.25 )
+        #time.sleep( 1 )
 
-        #get_string_to_search( global_dehasher )
+        #searching_string.value = get_string_to_search( searching_string.value.decode() ).encode() # Memory error when getting a longer byte string
+
+        new_string = get_string_to_search( searching_string.value.decode() )
+        searching_string = Array( ctypes.c_char, new_string.encode() )
+
+        '''
+        if len( new_string ) != current_str_lenght:
+            print("EXPANDING SEARCHING_STRING BYTE MEMORY")
+            searching_string = Array( ctypes.c_char, new_string.encode() )
+        else:
+            searching_string = new_string.encode()
+        '''
+
+        #print( f"New searching string! '{searching_string.value.decode()}'")
+        check_string_hashes( searching_string.value.decode() )
+        #return
         #string_to_search = global_dehasher.searching_string
 
         #a_new_thread = Process( target=check_string_hashes, args = [ global_dehasher, string_to_search, ] )
         #a_new_thread.start()
         #return
     
-    print("WORKING SET TO FALSE")
+    print("WORKING SET TO FALSE, SAVING PROGRESS")
+    module_files.write_savedata( searching_string.value.decode() )
 
 def check_string_hashes( string:str ) -> None:
-
-    print("CHECKING STRING HASHES")
 
     if string == None:
         print("Error, no string to check hash")
@@ -60,68 +74,57 @@ def check_string_hashes( string:str ) -> None:
         module_files.log_new_message( f"Error, string is empty to search for hash" )
         return
 
-    module_files.log_new_message( f"Checking hashes for word '{string}'" )
-    print( f"Checking hashes for word '{string}'" )
+    if debug:
+        module_files.log_new_message( f"Checking hashes for word '{string}'" )
+        print( f"Checking hashes for word '{string}'" )
 
     hash_list:list = []    
 
-    '''
+    
     if t7 and os.path.exists( "t7_32.txt" ):
 
-        manager_t7_32:class_file_manager = class_file_manager.File_Manager()
-        class_file_manager.assign_file( manager_t7_32, "t7_32.txt", "r" )
-
-        a_thread = Process( target=class_file_manager.check_existing_hash, args = [ manager_t7_32, string, global_dehasher, class_hasher.get_t7_32_hash] )
-        a_thread.start()
+        hash_list = module_files.get_hex_lines( "t7_32.txt" )
+        hash_lookup( string, module_hasher.get_t7_32_hex( string ), hash_list, "t7_32_found.txt")
 
     if t8_short and os.path.exists( "t8_32.txt" ):
 
-        manager_t8_32:class_file_manager = class_file_manager.File_Manager()
-        class_file_manager.assign_file( manager_t8_32, "t8_32.txt", "r")
+        hash_list = module_files.get_hex_lines( "t8_32.txt" )
+        hash_lookup( string, module_hasher.get_t8_32_hex( string ), hash_list, "t8_32_found.txt")
 
-        b_thread = Process( target=class_file_manager.check_existing_hash, args = [ manager_t8_32, string, global_dehasher, class_hasher.get_t8_32_hash] )
-        b_thread.start()
-    '''
     if t8_long and os.path.exists( "t8_64.txt" ):
 
         hash_list = module_files.get_hex_lines( "t8_64.txt" )
-        print("Starting Hash Lookup")
         hash_lookup( string, module_hasher.get_fnva1_hex( string ), hash_list, "t8_64_found.txt")
 
-    '''
     if t9_short and os.path.exists( "t9_32.txt" ):
 
-        manager_t9_32:class_file_manager = class_file_manager.File_Manager()
-        class_file_manager.assign_file( manager_t9_32, "t9_32.txt", "r")
-
-
-        d_thread = Process( target=class_file_manager.check_existing_hash, args = [ manager_t9_32, string, global_dehasher, class_hasher.get_t8_32_hash] )
-        d_thread.start()
+        hash_list = module_files.get_hex_lines( "t9_32.txt" )
+        hash_lookup( string, module_hasher.get_t8_32_hex( string ), hash_list, "t9_32_found.txt")
 
     if t9_long and os.path.exists( "t9_64.txt" ):
-        manager_t9_64:class_file_manager = class_file_manager.File_Manager()
-        class_file_manager.assign_file( manager_t9_64, "t9_64.txt", "r")
 
-        e_thread = Process( target=class_file_manager.check_existing_hash, args = [ manager_t9_64, string, global_dehasher, class_hasher.get_fnva1_hash] )
-        e_thread.start()
-    '''
+        hash_list = module_files.get_hex_lines( "t9_64.txt" )
+        hash_lookup( string, module_hasher.get_fnva1_hex( string ), hash_list, "t9_64_found.txt")
 
-def hash_lookup( word:str, hash:hex, hash_list:list, found_file_name) -> bool:
+def hash_lookup( word:str, hash:hex, hash_list:list, found_file_name) -> None:
 
-    print( f"Searching {word} => {hash}" )
+    if debug:
+        print( f"Searching {word} => {hash} | {found_file_name.split("_found")[0]}" )
 
-    # average 0.22
     if hash in hash_list:
         module_files.log_new_message( f"HASH FOUND! {word} => {hash}" )
         print( f"HASH FOUND! {word} => {hash}" )
         module_files.add_found_hash( found_file_name, f"{word} => {hash}\n")
-        return True
-
     
 
 
 
-def get_string_to_search( global_dehasher ) -> None:
+
+
+
+
+
+def get_string_to_search( searching_string ) -> str:
 
     ''' String data
         global_dehasher.searching_string                                            | string to search except the last letterself
@@ -135,38 +138,41 @@ def get_string_to_search( global_dehasher ) -> None:
     '''
     # global_dehasher.letters_index[ global_dehasher.searching_string[i] ]
 
-    for i in range( len( global_dehasher.searching_string ) ): # Checking all characters on the string to search
+    for i in range( len( searching_string ) ): # Checking all characters on the string to search
 
-        if global_dehasher.searching_string[i] == global_dehasher.letters[ len( global_dehasher.letters )-1 ]: # If the string is in the last letter we want to check, we skip to the next character position
+        if searching_string[i] == module_dehasher.get_last_possible_letter(): # If the string is in the last letter we want to check, we skip to the next character position
             #print("last letter detected! | "+global_dehasher.searching_string+"\n")
             continue
         else:
             string = ""
             for j in range(0, i): # We reset the chars before the one we want to upgrade
-                string += global_dehasher.letters[0]
+                string += module_dehasher.get_first_possible_letter()
             
             counter = 1
-            next_letter = global_dehasher.letters[ global_dehasher.letters_index[ global_dehasher.searching_string[i] ] +counter ]
+            #next_letter = global_dehasher.letters[ global_dehasher.letters_index[ global_dehasher.searching_string[i] ] +counter ]
+            next_letter = module_dehasher.get_next_letter( searching_string[i], counter)
 
             test_string = string
             test_string += next_letter
 
-            for j in range (i+1, len( global_dehasher.searching_string ) ): # We copy the rest of the string
+            for j in range (i+1, len( searching_string ) ): # We copy the rest of the string
                 #print( global_dehasher.searching_string )
-                test_string += global_dehasher.searching_string[j]
+                test_string += searching_string[j]
 
             #print("=================================\n")
             #print(" [get_string_to_search] test_string = "+test_string+" | string = "+string+"\n")
             
             while not is_valid_string(test_string, i, next_letter): # We check if its a valid letter AND its not the last one "_"
 
-                if next_letter == global_dehasher.letters[ len(global_dehasher.letters)-1 ]:
+                if next_letter == module_dehasher.get_last_possible_letter():
                     #print("GOING WEIRD CODE\n")
-                    check_last_letter_string(global_dehasher, test_string, i, next_letter)
-                    return
+                    str = check_last_letter_string( test_string, i, next_letter)
+                    #print("Weird code changed the searching string")
+                    return str
 
                 counter += 1
-                next_letter = global_dehasher.letters[ global_dehasher.letters_index[ global_dehasher.searching_string[i] ] +counter ]
+                #next_letter = global_dehasher.letters[ global_dehasher.letters_index[ global_dehasher.searching_string[i] ] +counter ]
+                next_letter = module_dehasher.get_next_letter( searching_string[i], counter)
 
                 #print("2) Preordering strings = "+test_string+" | string = "+string+" | next_letter = "+next_letter+"\n")
 
@@ -175,8 +181,8 @@ def get_string_to_search( global_dehasher ) -> None:
 
                 #print("Ready to order strings = "+test_string+" | string = "+string+" | next_letter = "+next_letter+"\n")
 
-                for j in range(i+1, len(global_dehasher.searching_string) ):
-                    test_string += global_dehasher.searching_string[j] # We copy the rest of the string
+                for j in range(i+1, len(searching_string) ):
+                    test_string += searching_string[j] # We copy the rest of the string
                 
 
                 #print("Strings ordered! = "+test_string+" | string = "+string+" | next_letter = "+next_letter+"\n")
@@ -185,15 +191,13 @@ def get_string_to_search( global_dehasher ) -> None:
 
             string += next_letter
 
-            for j in range(i+1, len(global_dehasher.searching_string) ):
-                string += global_dehasher.searching_string[j]  # We copy the rest of the string
+            for j in range(i+1, len(searching_string) ):
+                string += searching_string[j]  # We copy the rest of the string
                 
             #print("4) test_string = "+test_string+" | string = "+string+"\n")
-
-            global_dehasher.searching_string = string
-
+            #global_dehasher.searching_string = string
             #print("Hello 7 "+global_dehasher.searching_string+" | "+string)
-            return
+            return string
 
         print("Error, you shouldnt be here, out of loop | "+global_dehasher.searching_string+" | "+str)
         return
@@ -202,14 +206,16 @@ def get_string_to_search( global_dehasher ) -> None:
 
     str = ""
 
-    for i in range(0, len(global_dehasher.searching_string)+1):
-        str += global_dehasher.letters[0]
+    for i in range(0, len(searching_string)+1):
+        #str += global_dehasher.letters[0]
+        str += module_dehasher.get_first_possible_letter()
 
     #if debug:
         #print("All letters are the last one! Adding a new one | "+global_dehasher.searching_string+" => "+str)
-    global_dehasher.searching_string = str
+    #global_dehasher.searching_string = str
+    return str
                 
-def check_last_letter_string( global_dehasher, test_string:str, i:int, next_letter:str ) -> None:
+def check_last_letter_string( test_string:str, i:int, next_letter:str ) -> str:
 
     #print("[check_last_letter_string] test_string = "+test_string+" | i = "+str(i)+" | next_letter = "+next_letter+"\n")
 
@@ -218,7 +224,8 @@ def check_last_letter_string( global_dehasher, test_string:str, i:int, next_lett
     if i == len(test_string)-2:
 
         for j in range(0, len(test_string)+1 ):
-            string += global_dehasher.letters[0]
+            #string += global_dehasher.letters[0]
+            string += module_dehasher.get_first_possible_letter()
 
         #print("1) String = "+string+"\n")
 
@@ -228,9 +235,11 @@ def check_last_letter_string( global_dehasher, test_string:str, i:int, next_lett
         for j in range(0, len(test_string) ):
             if test_string[j] == next_letter:
                 carry = True
-                string += global_dehasher.letters[0]
+                #string += global_dehasher.letters[0]
+                string += module_dehasher.get_first_possible_letter()
             elif carry:
-                string += global_dehasher.letters[ global_dehasher.letters_index[ test_string[j] ] +1 ]
+                #string += global_dehasher.letters[ global_dehasher.letters_index[ test_string[j] ] +1 ]
+                string += module_dehasher.get_next_letter( test_string[j], 1 )
                 carry = False
             else:
                 string += test_string[j]
@@ -238,7 +247,8 @@ def check_last_letter_string( global_dehasher, test_string:str, i:int, next_lett
         if carry: # If we had to change the last letter
             string = ""
             for j in range(0, len(test_string)+1 ):
-                string += global_dehasher.letters[0]
+                #string += global_dehasher.letters[0]
+                string += module_dehasher.get_first_possible_letter()
             #print("Last letter had to be changed! | String = "+string+"\n")
 
     #print("2) String = "+string+"\n")
@@ -250,8 +260,10 @@ def check_last_letter_string( global_dehasher, test_string:str, i:int, next_lett
 
         #print("LOOP "+str(i)+"///////////////////\n")
 
-        counter = global_dehasher.letters_index[ string[i] ]
-        next_letter = global_dehasher.letters[ counter ]
+        #counter = global_dehasher.letters_index[ string[i] ]
+        counter = module_dehasher.from_letter_to_index( string[i] )
+        #next_letter = global_dehasher.letters[ counter ]
+        next_letter = module_dehasher.from_index_to_letter( counter )
         test_string = ""
 
         #print("A) i = "+str(i)+" counter = "+str(counter)+" | next_letter = "+next_letter+" | test_string = "+test_string+"\n")
@@ -268,12 +280,14 @@ def check_last_letter_string( global_dehasher, test_string:str, i:int, next_lett
 
         #print("Start Letter Index: "+str(counter)+" | test string "+test_string+" | next_letter "+next_letter+" | pos "+str(i)+" | set letters "+set_letters+"\n")
 
-        while next_letter != global_dehasher.letters[ len(global_dehasher.letters)-1 ] and not is_valid_string( test_string, i, next_letter):
+        #while next_letter != global_dehasher.letters[ len(global_dehasher.letters)-1 ] and not is_valid_string( test_string, i, next_letter):
+        while next_letter != module_dehasher.get_last_possible_letter() and not is_valid_string( test_string, i, next_letter):
         
             #print("D) counter = "+str(counter)+" | next_letter = "+next_letter+" | test_string = "+test_string+"\n")
 
             counter += 1
-            next_letter = global_dehasher.letters[ counter ]
+            #next_letter = global_dehasher.letters[ counter ]
+            next_letter = module_dehasher.from_index_to_letter( counter )
             test_string = ""
 
             #print("E) counter = "+str(counter)+" | next_letter = "+next_letter+" | test_string = "+test_string+"\n")
@@ -296,7 +310,8 @@ def check_last_letter_string( global_dehasher, test_string:str, i:int, next_lett
 
     #print("Final string | set_letters = "+set_letters+"\n")
 
-    global_dehasher.searching_string = set_letters
+    #global_dehasher.searching_string = set_letters
+    return set_letters
 
 
 #

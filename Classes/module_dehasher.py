@@ -153,4 +153,35 @@ def get_first_possible_letter() -> str:
 def get_last_possible_letter() -> str:
     global global_dehasher
 
-    return global_dehasher.letters[ global_dehasher.letters.size-1 ] 
+    return global_dehasher.letters[ len(global_dehasher.letters)-1 ]
+
+def get_next_letter( current_letter:str, counter:int ) -> str:
+    global global_dehasher
+
+    next_letter = global_dehasher.letters[ global_dehasher.letters_index[ current_letter ] +counter ]
+
+    if debug:
+        print( f"[get_next_letter] {current_letter} => {next_letter}" )
+
+    return next_letter
+
+def from_letter_to_index( current_letter:str ) -> int:
+    global global_dehasher
+
+    index = global_dehasher.letters_index[ current_letter ]
+
+    if debug:
+        print( f"[from_letter_to_index] {current_letter} => {index}" )
+
+    return index
+
+def from_index_to_letter( index:int ) -> str:
+    global global_dehasher
+
+    letter = global_dehasher.letters[ index ]
+
+    if debug:
+        print( f"[from_index_to_letter] {index} => {letter}" )
+
+    return letter
+

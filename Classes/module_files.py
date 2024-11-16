@@ -2,7 +2,7 @@ from datetime import datetime
 
 import os
 
-debug:bool = True
+debug:bool = False
 
 class Files_class:
 
@@ -196,6 +196,8 @@ def write_hashes( lines ) -> None:
     temp.sort() # Sort the lines in hexadecimal numbers, otherwise its not accurate for some reason
 
 
+    
+    # Hex
     global_files.file.write( str( hex( temp[0] )+"\n") ) # Now we write the hashes but skip the duplicated ones
     last_string:hex = hex( temp[0] )
 
@@ -207,7 +209,9 @@ def write_hashes( lines ) -> None:
 
         global_files.file.write( str( hex( temp[i] )+"\n") )
         last_string = hex( temp[i] )
+    
 
+    # Str
     '''
     global_files.file.write( str(hex(temp[0]))[2:]+"\n" ) # Now we write the hashes but skip the duplicated ones
     last_string = str(hex(temp[0]))[2:]+"\n"
@@ -276,7 +280,6 @@ def get_hex_lines( file_name:str ) -> list:
     global_files.set_file( file_name, "r" )
 
     for line in global_files.file.readlines():
-        #line = line.strip()
         list_of_hex.append( hex(int(line.strip(), base = 16)) )
         #log_new_message( f"line '{line}'" )
     
@@ -295,6 +298,23 @@ def add_found_hash( found_file_name:str, message:str ) -> None:
 
 
 
+def get_str_lines( file_name:str ) -> list:
+
+    global global_files
+
+    list_of_hex:list = []
+
+    global_files.set_file( file_name, "r" )
+
+    for line in global_files.file.readlines():
+        line = line.strip()
+
+        list_of_hex.append( line )
+        #log_new_message( f"line '{line}'" )
+    
+    global_files.close_file()
+
+    return list_of_hex
 
 
 

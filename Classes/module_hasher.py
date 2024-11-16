@@ -1,4 +1,4 @@
-debug:bool = True
+debug:bool = False
 
 class Hasher_class:
 
