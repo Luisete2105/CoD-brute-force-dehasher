@@ -5,7 +5,9 @@ import time
 #print("--- %s seconds ---" % (time.time() - start_time))
 
 import multiprocessing
-from multiprocessing import Process, cpu_count, Value, Array
+from multiprocessing import Process, cpu_count, Value
+
+#print(f'Number of physical cores: {psutil.cpu_count(logical=False)}')
 import ctypes
 
 from Classes import module_files
@@ -16,7 +18,7 @@ from Classes import module_dehasher
 debug:bool = False
 
 t7:bool = False
-t8_short:bool = True
+t8_short:bool = False
 t8_long:bool = True
 t9_short:bool = False
 t9_long:bool = False
@@ -26,52 +28,56 @@ def check_word_combinations( working:multiprocessing.sharedctypes.synchronized, 
 
     #print( f"pased string {searching_string.value.decode()}" )
 
-    current_str_lenght:int = len( searching_string.value.decode() )
+    n_searches = Value( ctypes.c_int, 0)
 
-    proc = Process( target=check_string_hashes, args = [ searching_string.value.decode() ] )
+    proc = Process( target=check_string_hashes, args = [ searching_string.value.decode(), n_searches ] )
     proc.start()
 
-
+    max_searches:int = ( (cpu_count()/2) -1)
 
     #return # Make it a single search for debugging porpuses
 
     while working.value:
         #time.sleep( 1 )
 
-        #searching_string.value = get_string_to_search( searching_string.value.decode() ).encode() # Memory error when getting a longer byte string
+        if n_searches.value >= max_searches:
+            #print( f"WAITING FOR A SEARCH TO STOP \n{n_searches.value} >= {max_searches}" )
+            while n_searches.value >= max_searches:
+                time.sleep( 0.05 ) # Like GSC
 
-        new_string = get_string_to_search( searching_string.value.decode() )
-        searching_string = Array( ctypes.c_char, new_string.encode() )
+        #print( f"Creating new thread | {n_searches.value}" )
 
-        '''
-        if len( new_string ) != current_str_lenght:
-            print("EXPANDING SEARCHING_STRING BYTE MEMORY")
-            searching_string = Array( ctypes.c_char, new_string.encode() )
-        else:
-            searching_string = new_string.encode()
-        '''
+        n_searches.value += 1
 
-        #print( f"New searching string! '{searching_string.value.decode()}'")
-        check_string_hashes( searching_string.value.decode() )
-        #return
-        #string_to_search = global_dehasher.searching_string
+        searching_string.value = get_string_to_search( searching_string.value.decode() ).encode() # Memory error when getting a longer byte string
 
-        #a_new_thread = Process( target=check_string_hashes, args = [ global_dehasher, string_to_search, ] )
-        #a_new_thread.start()
-        #return
+
+        a_new_thread = Process( target=check_string_hashes, args = [ searching_string.value.decode(), n_searches ] )
+        a_new_thread.start()
+
+        #check_string_hashes( searching_string.value.decode(), n_searches ) # Without multithreading
+
     
-    print("WORKING SET TO FALSE, SAVING PROGRESS")
+    #print("WORKING SET TO FALSE, SAVING PROGRESS")
     module_files.write_savedata( searching_string.value.decode() )
 
-def check_string_hashes( string:str ) -> None:
+    if n_searches.value > 0:
+        print( f"WAITING FOR ALL SEARCHES TO STOP! {n_searches.value}" )
+        while n_searches.value > 0:
+            time.sleep( 0.05 ) # Like GSC
+
+def check_string_hashes( string:str, n_searches:multiprocessing.sharedctypes.synchronized ) -> None:
 
     if string == None:
         print("Error, no string to check hash")
         module_files.log_new_message( f"Error, no string to check hash" )
+        n_searches.value -= 1
         return
+    
     if string == "":
         print("Error, string is empty to search for hash")
         module_files.log_new_message( f"Error, string is empty to search for hash" )
+        n_searches.value -= 1
         return
 
     if debug:
@@ -84,41 +90,81 @@ def check_string_hashes( string:str ) -> None:
     if t7 and os.path.exists( "t7_32.txt" ):
 
         hash_list = module_files.get_hex_lines( "t7_32.txt" )
-        hash_lookup( string, module_hasher.get_t7_32_hex( string ), hash_list, "t7_32_found.txt")
+        hash_lookup( string, module_hasher.get_t7_32_hex, hash_list, "t7_32_found.txt")
 
     if t8_short and os.path.exists( "t8_32.txt" ):
 
         hash_list = module_files.get_hex_lines( "t8_32.txt" )
-        hash_lookup( string, module_hasher.get_t8_32_hex( string ), hash_list, "t8_32_found.txt")
+        hash_lookup( string, module_hasher.get_t8_32_hex, hash_list, "t8_32_found.txt")
 
     if t8_long and os.path.exists( "t8_64.txt" ):
 
         hash_list = module_files.get_hex_lines( "t8_64.txt" )
-        hash_lookup( string, module_hasher.get_fnva1_hex( string ), hash_list, "t8_64_found.txt")
+        hash_lookup( string, module_hasher.get_fnva1_hex, hash_list, "t8_64_found.txt")
 
     if t9_short and os.path.exists( "t9_32.txt" ):
 
         hash_list = module_files.get_hex_lines( "t9_32.txt" )
-        hash_lookup( string, module_hasher.get_t8_32_hex( string ), hash_list, "t9_32_found.txt")
+        hash_lookup( string, module_hasher.get_t8_32_hex, hash_list, "t9_32_found.txt")
 
     if t9_long and os.path.exists( "t9_64.txt" ):
 
         hash_list = module_files.get_hex_lines( "t9_64.txt" )
-        hash_lookup( string, module_hasher.get_fnva1_hex( string ), hash_list, "t9_64_found.txt")
+        hash_lookup( string, module_hasher.get_fnva1_hex, hash_list, "t9_64_found.txt")
 
-def hash_lookup( word:str, hash:hex, hash_list:list, found_file_name) -> None:
+    n_searches.value -= 1
+
+def hash_lookup( word:str, hashing_func, hash_list:list, found_file_name) -> None:
 
     if debug:
-        print( f"Searching {word} => {hash} | {found_file_name.split("_found")[0]}" )
+        print( f"Searching {word} => {hashing_func(word)} | {found_file_name.split("_found")[0]}" )
 
-    if hash in hash_list:
-        module_files.log_new_message( f"HASH FOUND! {word} => {hash}" )
-        print( f"HASH FOUND! {word} => {hash}" )
-        module_files.add_found_hash( found_file_name, f"{word} => {hash}\n")
-    
+    if hashing_func(word) in hash_list: # Search the string without prefixes or suffixes
+        save_found_hash(word, hashing_func(word), found_file_name)
+
+    global_dehasher = module_dehasher.get_dehasher()
+
+    for category in global_dehasher.prefixes.keys(): # Search the string with all combinations of prefixes and suffixes
+
+        if word[0] != "_": # Can add prefixes
+
+            if word[ len(word)-1 ] != "_": # Can add suffixes
+
+                for prefix in global_dehasher.prefixes[category]: # Looping thorugh prefixes
+
+                    if hashing_func(prefix+word) in hash_list:
+                        save_found_hash(prefix+word, hashing_func(prefix+word), found_file_name)
+
+                    for suffix in global_dehasher.suffixes[category]: # Looping though suffixes
+
+                        if hashing_func(word+suffix) in hash_list:
+                            save_found_hash(word+suffix, hashing_func(word+suffix), found_file_name)
+
+                        if hashing_func(prefix+word+suffix) in hash_list:
+                            save_found_hash(prefix+word+suffix, hashing_func(prefix+word+suffix), found_file_name)
+
+            else: # Can add prefixes but not suffixes
+                    
+                    for prefix in global_dehasher.prefixes[category]: # Looping trough prefixes
+
+                        if hashing_func(prefix+word) in hash_list:
+                            save_found_hash(prefix+word, hashing_func(prefix+word), found_file_name)
+        
+        else: # Cant add prefixes
+
+            if word[ len(word)-1 ] != "_": # Cant add prefixes but can add suffixes
+
+                for suffix in global_dehasher.suffixes[category]: # Looping through suffixes
+
+                    if hashing_func(word+suffix) in hash_list:
+                        save_found_hash(word+suffix, hashing_func(word+suffix), found_file_name)
 
 
+def save_found_hash( word:str, hash:hex, found_file_name:str) -> None:
 
+    module_files.log_new_message( f"HASH FOUND! {word} => {hash}" )
+    print( f"HASH FOUND! {word} => {hash}" )
+    module_files.add_found_hash( found_file_name, f"{word} => {hash}\n")
 
 
 
@@ -319,6 +365,8 @@ def check_last_letter_string( test_string:str, i:int, next_letter:str ) -> str:
 #
 
 def is_valid_string( string:str, position:int, new_letter:str) -> bool:
+
+    # return True # Add a return True at the begining to make a full brute force search
 
     #print( "string = "+string+" | position = "+str(position)+" | new_letter = "+new_letter+"\n")
 

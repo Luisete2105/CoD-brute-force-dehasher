@@ -5,7 +5,7 @@ import time
 #print("--- %s seconds ---" % (time.time() - start_time))
 
 import multiprocessing
-from multiprocessing import Process, cpu_count, Value, Array
+from multiprocessing import Process, Value, Array
 import ctypes
 from Classes import module_files
 
@@ -93,16 +93,18 @@ class Dehasher_class:
             "_lv3", "_lvl3", "_t8_lv3", "_t8_lvl3"
             ] )
         '''        
-        
+ 
         self.add_prefix( "weapons_strings", [
             "zombie/", "zombie/ww_", "zombie/hero_", 
             "zmweapon/", "zmweapon/ww_", "zmweapon/hero_",
             "weapon/", "weapon/ww_", "weapon/hero_",
             ] )
         self.add_suffix( "weapons_strings", [
-            "_t8", "_t8_zm", "_upgraded", "_t8_upgraded", "_zm", "_t8_upgraded_zm"
-            "_t8_lv1_zm", "_t8_lv2_zm", "_t8_lv3_zm"
+            "_t8", "_t8_zm", "_upgraded", "_t8_upgraded", "_zm", "_t8_upgraded_zm",
+            "_t8_lv1_zm", "_t8_lv2_zm", "_t8_lv3_zm",
             ] )        
+        
+        
 
     def __del__(self) -> None:
 
@@ -185,3 +187,8 @@ def from_index_to_letter( index:int ) -> str:
 
     return letter
 
+def get_dehasher():
+
+    global global_dehasher
+
+    return global_dehasher

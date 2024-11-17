@@ -6,6 +6,7 @@ import time
 
 from datetime import datetime
 from multiprocessing import Process, Value, Array
+from threading import Thread
 
 import main_dehasher
 
@@ -162,11 +163,15 @@ def files_menu() -> None:
 def dehash_menu() -> None:
 
     working = Value( ctypes.c_bool, True )
-    searching_string = Array( ctypes.c_char, module_files.check_savedata_exists( module_dehasher.get_first_possible_letter() ).encode() )
+    searching_string = Array( ctypes.c_char, "aaaaaaaaaaaaaaaa".encode() )
+    searching_string.value =  module_files.check_savedata_exists( module_dehasher.get_first_possible_letter() ).encode()
     print( f"Starting dehashing, currently at => {searching_string.value.decode()}" )
 
-    new_thread = Process( target=main_dehasher.check_word_combinations, args = [ working, searching_string ] )
+    new_thread = Thread( target=main_dehasher.check_word_combinations, args = [ working, searching_string ] )
     new_thread.start()
+
+    #new_thread = Process( target=main_dehasher.check_word_combinations, args = [ working, searching_string ] )
+    #new_thread.start()
 
     #return # Make it a single search for debugging purposes
 
