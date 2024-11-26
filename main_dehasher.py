@@ -26,14 +26,14 @@ t9_long:bool = False
 
 def check_word_combinations( working:multiprocessing.sharedctypes.synchronized, searching_string:multiprocessing.sharedctypes.synchronized ) -> None:
 
-    #print( f"pased string {searching_string.value.decode()}" )
-
     n_searches = Value( ctypes.c_int, 0)
 
     proc = Process( target=check_string_hashes, args = [ searching_string.value.decode(), n_searches ] )
     proc.start()
 
-    max_searches:int = ( (cpu_count()/2) -1)
+    max_searches:int = ( (cpu_count()/2) -1) # This should be fine for most systems
+    #max_searches = 8 # in case you want a custom number of processes
+    #max_searches:int = cpu_count() # Full cpu usage (This lags a lot)
 
     #return # Make it a single search for debugging porpuses
 
@@ -49,11 +49,11 @@ def check_word_combinations( working:multiprocessing.sharedctypes.synchronized, 
 
         n_searches.value += 1
 
-        searching_string.value = get_string_to_search( searching_string.value.decode() ).encode() # Memory error when getting a longer byte string
+        searching_string.value = get_string_to_search( searching_string.value.decode() ).encode()
 
 
-        a_new_thread = Process( target=check_string_hashes, args = [ searching_string.value.decode(), n_searches ] )
-        a_new_thread.start()
+        a_new_process = Process( target=check_string_hashes, args = [ searching_string.value.decode(), n_searches ] )
+        a_new_process.start()
 
         #check_string_hashes( searching_string.value.decode(), n_searches ) # Without multithreading
 
@@ -63,8 +63,8 @@ def check_word_combinations( working:multiprocessing.sharedctypes.synchronized, 
 
     if n_searches.value > 0:
         print( f"WAITING FOR ALL SEARCHES TO STOP! {n_searches.value}" )
-        while n_searches.value > 0:
-            time.sleep( 0.05 ) # Like GSC
+        a_new_process.join()
+
 
 def check_string_hashes( string:str, n_searches:multiprocessing.sharedctypes.synchronized ) -> None:
 
@@ -85,8 +85,7 @@ def check_string_hashes( string:str, n_searches:multiprocessing.sharedctypes.syn
         print( f"Checking hashes for word '{string}'" )
 
     hash_list:list = []    
-
-    
+  
     if t7 and os.path.exists( "t7_32.txt" ):
 
         hash_list = module_files.get_hex_lines( "t7_32.txt" )

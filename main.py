@@ -5,7 +5,7 @@ import time
 #print("--- %s seconds ---" % (time.time() - start_time))
 
 from datetime import datetime
-from multiprocessing import Process, Value, Array
+from multiprocessing import Value, Array
 from threading import Thread
 
 import main_dehasher
