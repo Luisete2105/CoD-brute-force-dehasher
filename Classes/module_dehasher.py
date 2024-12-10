@@ -37,7 +37,7 @@ class Dehasher_class:
         self.prefixes = {}
         self.suffixes = {}
 
-
+        '''
         self.add_prefix( "items", [
             "zitem_", "ztable_", "zblueprint_",
             ] )
@@ -73,9 +73,38 @@ class Dehasher_class:
         self.add_suffix( "script_path", [
             ".csc", ".gsc",
             ] ) 
+        '''
+
+        self.add_prefix( "mini_dolls", [
+            "eq_nesting_doll_grenade_", "nesting_doll_grenade_", "doll_grenade_",
+            "doll_grenade", "nesting_doll_grenade_",
+
+            "wpn_t8_zm_eqp_doll_", "wpn_t8_zm_eqp_nesting_doll_", "wpn_t8_zm_eqp_nesting_doll_single_",
+            "wpn_t8_zm_eqp_doll_grenade_", "wpn_t8_zm_eqp_nesting_doll_grenade_", "wpn_t8_zm_eqp_nesting_doll_grenade_single_",
+            "wpn_t8_grenade_doll_", "wpn_t8_grenade_nesting_doll_", "wpn_t8_grenade_nesting_doll_single_",
+
+            "wpn_t7_zm_eqp_doll_", "wpn_t7_zm_eqp_nesting_doll_", "wpn_t7_zm_eqp_nesting_doll_single_",
+            "wpn_t7_zm_eqp_doll_grenade_", "wpn_t7_zm_eqp_nesting_doll_grenade_", "wpn_t7_zm_eqp_nesting_doll_grenade_single_",
+            "wpn_t7_grenade_doll_" "wpn_t7_grenade_nesting_doll_", "wpn_t7_grenade_nesting_doll_single_",
+
+            "wpn_t8_zm_eq_nesting_doll_grenade_single_", "wpn_t8_zm_nesting_doll_grenade_single_", "wpn_t8_zm_nesting_doll_single_", "wpn_t8_zm_doll_single_",
+            "wpn_t8_zm_eq_nesting_doll_grenade_", "wpn_t8_zm_nesting_doll_grenade_", "wpn_t8_zm_nesting_doll_", "wpn_t8_zm_doll_",
+
+            "wpn_t8_eqp_nesting_doll_grenade_single_cluster_projectile_", "wpn_t8_eqp_nesting_doll_grenade_cluster_projectile_", "wpn_t8_eqp_nesting_doll_cluster_projectile_"
+            "wpn_t8_eqp_nesting_doll_grenade_single_cluster_", "wpn_t8_eqp_nesting_doll_grenade_cluster_", "wpn_t8_eqp_nesting_doll_cluster_",
+
+            "wpn_t8_eqp_nesting_doll_grenade_cluster_projectile_", "wpn_t8_eqp_nesting_doll_cluster_projectile_", "wpn_t8_eqp_nesting_doll_cluster_"
+            "wpn_t8_eqp_nesting_doll_grenade_cluster_",
 
 
+            "nesting_dolls_"
+            "zombie_nesting_doll_single_",
+            ] )
         
+        self.add_suffix( "mini_dolls", [
+            "_projectile", "_world", "_mini_world", "_view", "_mini_view",
+            "_cluster", "_small", "_smaller", "_mini",
+            ] )  
 
     def __del__(self) -> None:
 

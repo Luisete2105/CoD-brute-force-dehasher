@@ -14,10 +14,20 @@ from Classes import module_hasher
 from Classes import module_files
 from Classes import module_dehasher
 
-#FNV-A1 53627c60c07a09f2,pleudir |T7 32 86775f0c,pleudir |T8 32 fc7cb164,pleudir
-#0xDDDA9606, compiler // T7 32
-#0xC5D43415, create_task_timer // T7 32
 
+
+'''
+Hashing 'pleudir'
+T7 32 => 0x86775f0c | 86775f0c
+T8 32 => 0xfc7cb164 | fc7cb164
+FNVA1 => 0x53627c60c07a09f2 | 53627c60c07a09f2
+HashIWRes => 0x549afccc4758bdeb | 549afccc4758bdeb
+HashIWTag => 0x3e163d52 | 3e163d52
+HashJupScr => 0x89b6b9b94add5236 | 89b6b9b94add5236
+HashIWDVar => 0xef63d32cf0037237 | ef63d32cf0037237
+HashT10Scr => 0x876e0ac813f9e747 | 876e0ac813f9e747
+HashT10ScrSP => 0xa1753b83db2c84b7 | a1753b83db2c84b7
+'''
 
 debug:bool = False
 
@@ -96,11 +106,38 @@ def hash_menu() -> None:
         hash:str = input( "\n" ).lower()
 
         print( "Hashing '"+hash+"'\n" )
-        print( f"T7 32 => { module_hasher.get_t7_32_str( hash ) }\nT8 32 => { module_hasher.get_t8_32_str( hash ) }\nFNVA1 => { module_hasher.get_fnva1_str( hash ) }\nDo you want to try another Hash?\n" )
+        '''
+        print( f"T7 32 => { module_hasher.get_t7_32_str( hash ) }\n"
+              f"T8 32 => { module_hasher.get_t8_32_str( hash ) }\n"
+              f"FNVA1 => { module_hasher.get_fnva1_str( hash ) }\n"
+              f"HashIWRes => { module_hasher.get_HashIWRes_str( hash ) }\n"
+              f"HashIWTag => { module_hasher.get_HashIWTag_str( hash ) }\n"
+              f"HashJupScr => { module_hasher.get_HashJupScr_str( hash ) }\n"
+              f"HashIWDVar => { module_hasher.get_HashIWDVar_str( hash ) }\n"
+              f"HashT10Scr => { module_hasher.get_HashT10Scr_str( hash ) }\n"
+              f"HashT10ScrSPPre => { module_hasher.get_HashT10ScrSPPre_str( hash ) }\n"
+              f"HashT10ScrSPPost => { module_hasher.get_HashT10ScrSPPost_str( hash ) }\n"
+              f"HashT10ScrSP => { module_hasher.get_HashT10ScrSP_str( hash ) }\n"
 
+              "\nDo you want to try another Hash?\n" )
+        '''
+        print( f"T7 32 => { module_hasher.get_t7_32_hex( hash ) } | { module_hasher.get_t7_32_str( hash ) }\n"
+              f"T8 32 => { module_hasher.get_t8_32_hex( hash ) } | { module_hasher.get_t8_32_str( hash ) }\n"
+              f"FNVA1 => { module_hasher.get_fnva1_hex( hash ) } | { module_hasher.get_fnva1_str( hash ) }\n"
+              f"HashIWRes => { module_hasher.get_HashIWRes_hex( hash ) } | { module_hasher.get_HashIWRes_str( hash ) }\n"
+              f"HashIWTag => { module_hasher.get_HashIWTag_hex( hash ) } | { module_hasher.get_HashIWTag_str( hash ) }\n"
+              f"HashJupScr => { module_hasher.get_HashJupScr_hex( hash ) } | { module_hasher.get_HashJupScr_str( hash ) }\n"
+              f"HashIWDVar => { module_hasher.get_HashIWDVar_hex( hash ) } | { module_hasher.get_HashIWDVar_str( hash ) }\n"
+              f"HashT10Scr => { module_hasher.get_HashT10Scr_hex( hash ) } | { module_hasher.get_HashT10Scr_str( hash ) }\n"
+              #f"HashT10ScrSPPre => { module_hasher.get_HashT10ScrSPPre_hex( hash ) } | { module_hasher.get_HashT10ScrSPPre_str( hash ) }\n"
+              #f"HashT10ScrSPPost => { module_hasher.get_HashT10ScrSPPost_hex( hash ) } | { module_hasher.get_HashT10ScrSPPost_str( hash ) }\n"
+              f"HashT10ScrSP => { module_hasher.get_HashT10ScrSP_hex( hash ) } | { module_hasher.get_HashT10ScrSP_str( hash ) }\n"
+
+              "\nDo you want to try another Hash?\n" )
         try_again:str = input( "Y / Yes | To try another Hash\n" ).lower()
 
-        if try_again != "y" or try_again != "yes":
+        if try_again != "y" and try_again != "yes":
+            print(f"try_again = {try_again}")
             break
         
     print("Going back to menu")
@@ -216,6 +253,21 @@ def get_option_input( str_input:str ) -> int:
 
 # module_files END
 
+def hash_dvar(dvar : str):
+    OFFSET_BASIS = 0xD86A3B09566EBAAC
+    PRIME = 0x10000000233
+    MOD = 2 ** 64
+    _hash = OFFSET_BASIS
+
+    EXTRA = 'q6n-+7=tyytg94_*'
+    NEW_STR = dvar[0] + EXTRA + dvar[1:]
+
+    for char in NEW_STR.lower():
+        _hash = PRIME * (ord(char) ^ _hash) % MOD
+
+    return _hash
+
+#module_files.log_new_message( f"cg_fovScale = {hex(hash_dvar("cg_fovScale"))}\n" )
 
 if __name__ == "__main__":
 
