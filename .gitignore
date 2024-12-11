@@ -1,12 +1,14 @@
 .vscode
 __pycache__
-lists
 comp.txt
 found_hashes.txt
 hashes.txt
 lui.txt
 lui_log.txt
+temp.txt
+read_test.txt
 save_data.cfg
 t8_32_found.txt
 t8_64_found.txt
-
+GSC Source/
+mwiii/

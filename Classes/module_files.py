@@ -114,7 +114,7 @@ def log_new_message( message:str ) -> None:
         pass
 
     global global_logger
-    global_logger.file.write( datetime.now().strftime("%H:%M:%S")+": "+message+"\n" )
+    global_logger.file.write( datetime.now().strftime("%H:%M:%S")+": "+str(message)+"\n" )
 
 
 global_files:Files_class = Files_class()
@@ -316,108 +316,4 @@ def get_str_lines( file_name:str ) -> list:
 
     return list_of_hex
 
-
-
-# to do
-
-def check_existing_hash( reader:Files_class, word:str, global_dehasher, hashing_func) -> None:
-
-    #class_Dehasher_class.increment_search()
-
-    #hash = hashing_func( word )
-
-
-    lines = reader.file.readlines()
-
-
-    is_hash_wanted( lines, reader.file_name, word, hashing_func( word ) )
-
-    categories = global_dehasher.prefixes.keys()
-
-    for category in categories:
-
-        if word[0] != "_": # Can add prefixes
-
-            if word[ len(word)-1 ] != "_": # Can add suffixes
-
-                for prefix in global_dehasher.prefixes[category]:
-
-                    is_hash_wanted( lines, reader.file_name, prefix+word, hashing_func( prefix+word ) )
-
-                    for suffix in global_dehasher.suffixes[category]:
-
-                        is_hash_wanted( lines, reader.file_name, prefix+word+suffix, hashing_func( prefix+word+suffix ) )
-                        is_hash_wanted( lines, reader.file_name, word+suffix, hashing_func( word+suffix ) )
-
-            else: # Can add prefixes but not suffixes
-                    
-                    for prefix in global_dehasher.prefixes[category]:
-
-                        is_hash_wanted( lines, reader.file_name, prefix+word, hashing_func( prefix+word ) )
-        
-        else: # Cant add prefixes
-
-            if word[ len(word)-1 ] != "_": # Cant add prefixes but can add suffixes
-
-                for suffix in global_dehasher.suffixes[category]:
-
-                    is_hash_wanted( lines, reader.file_name, word+suffix, hashing_func( word+suffix ) )
-
-    #class_Dehasher_class.decrement_search()
-
-def is_hash_wanted( lines, file_name, word, hash) -> None:
-
-    for i in range( len( lines ) ): # Skipping lines from hashes shorter than what we are searching
-        #logger.log_new_message( "\n "+hash+" "+str( len(hash) )+" > "+lines[i]+" "+str( len(lines[i]) )  )
-
-        if len( hash ) > len( lines[i] )-1:
-            continue
-        else:
-            break
-
-    #logger.log_new_message( "\n"+file_name+"\nPrev line "+lines[i-1]+" | Curr line "+str(lines[i]) )
-
-    last_char_found_pos:int = -1
-
-    for j in range( i, len( lines ) ):
-        if len( hash ) < len( lines[i] )-1: # If the hashes we are reading are bigger than what we are comparing we just stop
-            #logger.log_new_message( "\nBigger than searching hash => Prev line "+lines[j-1]+" | Curr line "+str(lines[j]) )
-            return
-        
-        found:bool = True
-        for k in range( len( hash ) ):
-            #logger.log_new_message( "\nComparing "+lines[j]+" | Char pos = "+str(k) )
-
-            if hash[k] != lines[j][k]:
-
-                if k-1 < last_char_found_pos or int( lines[j][k], 16 ) > int( hash[k], 16 ) : # If we are getting lest accurate hashes its not on the list
-                    #logger.log_new_message( "\nLess accurate hashes "+lines[j]+" | Char pos = "+str(k) )
-                    return
-                
-                #logger.log_new_message( "\nIncorrect letter  List char "+lines[j][k]+" | Hash char "+hash[k] )
-                found = False
-                break # Since its not less accurate its still possible to be on the list, we stop comparing chars and just go to next line of the hash list
-            else:
-                if k > last_char_found_pos:
-                    #logger.log_new_message( "\nMore accurate hashes "+lines[j]+" | Line = "+str(j) )
-                    last_char_found_pos = k
-
-        if found: # We stop searching and we write it down
-
-            logger = Files_class()
-            logger.set_file("lui_log.txt", "a")
-            logger.log_new_message( "\nA hash of the list has been found!\n"+file_name+" | "+word+" => "+hash )
-            word_writer:Files_class = Files_class()
-
-            found_file:str = ""
-            for x in range(0, len( file_name ) -4 ):
-                found_file += file_name[x]
-
-            word_writer.set_file( found_file+"_found.txt", "a" )
-            word_writer.write_to_file(  word+" => "+hash+"\n")
-            print("new word found! '"+word+"'")
-            return
-        else:
-            #logger.log_new_message( "\nSkipping to next hash of the list" )
-            continue
 

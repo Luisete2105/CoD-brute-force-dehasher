@@ -9,10 +9,12 @@ from multiprocessing import Value, Array
 from threading import Thread
 
 import main_dehasher
+import main_collector
 
 from Classes import module_hasher
 from Classes import module_files
 from Classes import module_dehasher
+
 
 
 
@@ -42,13 +44,16 @@ def print_menu_options() -> None:
     print( "\n>==================<" )
     print( "0 / Exit / Quit => Close the program" )
     print( "1 / Try Hash    => You enter a string and get the hashes for it" )
-    print( "2 / List        => Hash list maker" )
-    print( "3 / Dehasher    => Brute force dehasher" )
+    print( "2 / List        => Hash list maker from ATE's Dehasher tool" )
+    print( "3 / Collect     => Collect hashes from a source repository" )
+    print( "4 / Dehasher    => Brute force dehasher" )
     print( ">==================<\n" )
 
 def translate_option( option:str ) -> int:
 
-    if option == "3" or option == "dehasher":
+    if option == "4" or option == "dehasher":
+        return 4
+    if option == "3" or option == "collect":
         return 3
     if option == "2" or option == "list":
         return 2
@@ -68,6 +73,9 @@ def execute_menu_task( option:int ) -> None:
         files_menu()
         pass
     if option == 3:
+        source_menu()
+        pass
+    if option == 4:
         dehash_menu()
         pass
     
@@ -137,7 +145,7 @@ def hash_menu() -> None:
         try_again:str = input( "Y / Yes | To try another Hash\n" ).lower()
 
         if try_again != "y" and try_again != "yes":
-            print(f"try_again = {try_again}")
+            #print(f"try_again = {try_again}")
             break
         
     print("Going back to menu")
@@ -195,7 +203,7 @@ def files_menu() -> None:
 # module_files END
     
 
-# module_files START
+# main_dehasher START
 
 def dehash_menu() -> None:
 
@@ -249,9 +257,89 @@ def get_option_input( str_input:str ) -> int:
     else:
         return 2
 
+# main_dehasher END
+
+# main_collector START
+    
+def source_menu() -> None:
+
+    print( "\n>==================<" )
+    print( "0 => Bo3" )
+    print( "1 => Bo4" )
+    print( "2 => CW" )
+    print( "3 => MWiii" )
+    print( "4 => Bo6" )
+    print( "Anything else => Cancel\n" )
+    print( ">==================<\n" )
+
+    #str_option:str = input().lower()
+
+    try:
+        option:int = int(input().lower())
+
+    except ValueError:
+        print("Not a number, canceling source menu")
+        return
+    except:
+        print("Unknown error")
+        return
+    
+    else:
+        if option < 0 or option > 4:
+            print("Canceling source menu")
+            return
 
 
-# module_files END
+
+    if option == 0:
+        print("Bo3 selected")
+    elif option == 1:
+        print("Bo4 selected")
+    elif option == 2:
+        print("CW selected")
+    elif option == 3:
+        print("MWiii selected")
+    elif option == 1:
+        print("Bo6 selected")
+
+
+
+
+    print("Ended source")
+    return
+    
+    
+    if not os.path.exists( "comp.txt" ) and not os.path.exists( "hashes.txt" ): # Check if there isnt any valid hash file
+        print( "Error, couldnt find 'comp.txt' or 'hashes.txt'\n" )
+        return
+    
+    # comp.txt
+    comp:module_files.Files_class = module_files.Files_class()
+    comp.set_file( "comp.txt", "r" )
+
+    # hashes.txt
+    hashes:module_files.Files_class = module_files.Files_class()
+    hashes.set_file( "hashes.txt", "r" )
+
+    if str_option == "0":
+
+        module_files.log_new_message( "T7 selected" )
+        module_files.get_t7_hashes( comp, hashes )
+
+    elif str_option == "1":
+
+        module_files.log_new_message( "T8 selected" )        
+        module_files.get_t8_hashes( comp, hashes )
+
+    elif str_option == "2":
+
+        module_files.log_new_message( "T9 selected" )
+        module_files.get_t9_hashes( comp, hashes )
+
+    del comp
+    del hashes
+
+# main_collector END
 
 def hash_dvar(dvar : str):
     OFFSET_BASIS = 0xD86A3B09566EBAAC
@@ -269,8 +357,18 @@ def hash_dvar(dvar : str):
 
 #module_files.log_new_message( f"cg_fovScale = {hex(hash_dvar("cg_fovScale"))}\n" )
 
+
+
+
+
 if __name__ == "__main__":
 
-    start_menu()
+    #start_menu()
+
+    main_collector.collector()
+
+
+
+
     print_menu_title_message( "Exiting program" )
 
