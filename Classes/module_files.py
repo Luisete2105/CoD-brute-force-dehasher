@@ -51,7 +51,7 @@ class Files_class:
         elif debug:
             print( "[close_file] There is no file to close\n" )
 
-    def set_file(self, file_name:str, file_mode:str) -> None:
+    def set_file(self, file_name:str, file_mode:str, encoder = None) -> None:
 
         global debug
         # r = read | w = write | a = append (only add info at the end of the file) | r+ = read and write
@@ -65,11 +65,15 @@ class Files_class:
             self.close_file()
 
         if file_mode == "r" or file_mode == "r+":
-            #file = open(file_name, file_mode)
 
             try:
 
-                file = open(file_name, file_mode)
+                if encoder != None:
+                    if debug:
+                        print(f"Encoder: {encoder}")
+                    file = open(file_name, file_mode, encoding=encoder, errors='ignore')
+                else:
+                    file = open(file_name, file_mode, )
 
             except Exception as e: # Only when exception happens on 'try'
 
@@ -287,9 +291,35 @@ def get_hex_lines( file_name:str ) -> list:
 
     return list_of_hex
 
+
+def get_hex_lines_ate_style( file_name:str ) -> list: # "hash, hasth_type+hash"
+
+    global global_files
+
+    list_of_hex:list = []
+
+    global_files.set_file( file_name, "r" )
+
+    for line in global_files.file.readlines():
+        
+        #print(f"LINE IS {line.split(",")[0]}" )
+        list_of_hex.append( hex( int( line.split(",")[0], base = 16 ) ) )
+        #list_of_hex.append( hex( int( line.strip(), base = 16 ) ) )
+        #log_new_message( f"line '{line}'" )
+    
+    global_files.close_file()
+
+    return list_of_hex
+
+
 def add_found_hash( found_file_name:str, message:str ) -> None:
 
     global global_files
+
+    path = os.path.dirname( os.path.realpath( found_file_name ) )
+    if not os.path.exists(path):
+        os.makedirs(path, exist_ok=True)
+
 
     global_files.set_file( found_file_name, "a" )
     global_files.write_to_file( message )

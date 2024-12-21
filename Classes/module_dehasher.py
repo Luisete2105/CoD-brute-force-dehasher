@@ -75,6 +75,7 @@ class Dehasher_class:
             ] ) 
         '''
 
+        '''
         self.add_prefix( "mini_dolls", [
             "eq_nesting_doll_grenade_", "nesting_doll_grenade_", "doll_grenade_",
             "doll_grenade", "nesting_doll_grenade_",
@@ -105,6 +106,21 @@ class Dehasher_class:
             "_projectile", "_world", "_mini_world", "_view", "_mini_view",
             "_cluster", "_small", "_smaller", "_mini",
             ] )  
+        '''
+            
+        self.add_prefix( "script_path", [
+            "scripts/",
+            "scripts/lui/",
+            "scripts/hud/",
+            "scripts/lui_hud/",
+
+
+            "scripts/core_common/",
+            "scripts/core_common/lua/",
+            "scripts/core_common/hud/",
+            "scripts/core_common/lui/",
+            ] )
+
 
     def __del__(self) -> None:
 
@@ -114,7 +130,31 @@ class Dehasher_class:
 
     def add_prefix(self, category:str, list) -> None:
 
-        self.prefixes[ category ]  = []
+        # Check if the actual prefix already exists
+        try:
+            self.prefixes[ category ].append( "lui" )
+        except:
+            if debug:
+                print(print( f"'{category}' prefix is NOT defined!") )
+            
+            self.prefixes[ category ]  = []
+
+        else:
+            self.prefixes[ category ].remove( "lui" )
+            
+        
+        # Create empty suffix it doesnt exist to avoid errors when using brute force dehasher
+        try:
+            self.suffixes[ category ].append( "lui" )
+        except:
+            if debug:
+                print(print( f"'{category}' prefix is NOT defined!") )
+            
+            self.suffixes[ category ]  = []
+        else:
+            self.suffixes[ category ].remove( "lui" )
+
+
         for prefix in list:
             self.prefixes[ category ].append( prefix )
 
@@ -128,6 +168,35 @@ class Dehasher_class:
             module_files.log_new_message("\n\n")
 
     def add_suffix(self, category:str, list) -> None:
+
+        # Check if the actual suffix already exists
+        try:
+            self.suffixes[ category ].append( "lui" )
+        except:
+            if debug:
+                print(print( f"'{category}' prefix is NOT defined!") )
+            
+            self.suffixes[ category ]  = []
+
+        else:
+            self.suffixes[ category ].remove( "lui" )
+
+
+        # Create empty preffix it doesnt exist to avoid errors when using brute force dehasher
+        try:
+            self.prefixes[ category ].append( "lui" )
+        except:
+            if debug:
+                print(print( f"'{category}' prefix is NOT defined!") )
+            
+            self.prefixes[ category ]  = []
+        else:
+            self.prefixes[ category ].remove( "lui" )
+
+        for prefix in list:
+            self.prefixes[ category ].append( prefix )
+
+
 
         self.suffixes[ category ]  = []
         for suffix in list:

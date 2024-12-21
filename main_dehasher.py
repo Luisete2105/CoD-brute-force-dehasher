@@ -14,21 +14,124 @@ from Classes import module_files
 from Classes import module_hasher
 from Classes import module_dehasher
 
+import headers
+from headers import *
 
 debug:bool = False
 
-t7:bool = False
-t8_short:bool = False
-t8_long:bool = True
-t9_short:bool = False
-t9_long:bool = False
+bo3:bool = True
+bo4:bool = True
+cw:bool = True
+mwiii:bool = True
+bo6:bool = True
+
+t7 = True
+t8_short = True
+t8_long = True
+t9_short = True
+t9_long = True
+
+
+
+def check_string_hashes_by_type( string:str, n_searches:multiprocessing.sharedctypes.synchronized ) -> None:
+
+    if string == None: # Cancel search if its 'None'
+        print("Error, no string to check hash")
+        module_files.log_new_message( f"Error, no string to check hash" )
+        n_searches.value -= 1
+        return
+    
+    if string == "": # Cancel if its empty
+        print("Error, string is empty to search for hash")
+        module_files.log_new_message( f"Error, string is empty to search for hash" )
+        n_searches.value -= 1
+        return
+
+    if debug:
+        module_files.log_new_message( f"Checking hashes for word '{string}'" )
+        print( f"Checking hashes for word '{string}'" )
+
+
+    if bo3 and os.path.exists( "bo3" ):
+
+        game = "bo3"
+        for hash_type in config[ game ]:
+
+            file_name = game+"_"+headers.file_name_by_expresion(hash_type)+".txt"
+
+            if os.path.exists( game+"\\"+file_name ):
+
+                hash_list = module_files.get_hex_lines_ate_style( game+"\\"+file_name )
+                hashing_function = module_hasher.hash_func_from_game_and_type( game, hash_type)
+                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+hash_type+"found.txt")
+
+
+    if bo4 and os.path.exists( "bo4" ):
+
+        game = "bo4"
+        for hash_type in config[ game ]:
+
+            file_name = game+"_"+headers.file_name_by_expresion(hash_type)+".txt"
+
+            if os.path.exists( game+"\\"+file_name ):
+
+                hash_list = module_files.get_hex_lines_ate_style( game+"\\"+file_name )
+                hashing_function = module_hasher.hash_func_from_game_and_type( game, hash_type)
+                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+hash_type+"found.txt")
+
+
+    if cw and os.path.exists( "cw" ):
+
+        game = "cw"
+        for hash_type in config[ game ]:
+
+            file_name = game+"_"+headers.file_name_by_expresion(hash_type)+".txt"
+
+            if os.path.exists( game+"\\"+file_name ):
+
+                hash_list = module_files.get_hex_lines_ate_style( game+"\\"+file_name )
+                hashing_function = module_hasher.hash_func_from_game_and_type( game, hash_type)
+                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+hash_type+"found.txt")
+
+
+    if mwiii and os.path.exists( "mwiii" ):
+
+        game = "mwiii"
+        for hash_type in config[ game ]:
+
+            file_name = game+"_"+headers.file_name_by_expresion(hash_type)+".txt"
+
+            if os.path.exists( game+"\\"+file_name ):
+
+                hash_list = module_files.get_hex_lines_ate_style( game+"\\"+file_name )
+                hashing_function = module_hasher.hash_func_from_game_and_type( game, hash_type)
+                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+hash_type+"found.txt")
+
+
+    if bo6 and os.path.exists( "bo6" ):
+
+        game = "bo6"
+        for hash_type in config[ game ]:
+
+            file_name = game+"_"+headers.file_name_by_expresion(hash_type)+".txt"
+
+            if os.path.exists( game+"\\"+file_name ):
+
+                hash_list = module_files.get_hex_lines_ate_style( game+"\\"+file_name )
+                hashing_function = module_hasher.hash_func_from_game_and_type( game, hash_type)
+                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+hash_type+"found.txt")
+
+
+    n_searches.value -= 1
+
 
 
 def check_word_combinations( working:multiprocessing.sharedctypes.synchronized, searching_string:multiprocessing.sharedctypes.synchronized ) -> None:
 
     n_searches = Value( ctypes.c_int, 0)
 
-    proc = Process( target=check_string_hashes, args = [ searching_string.value.decode(), n_searches ] )
+    proc = Process( target=check_string_hashes_by_type, args = [ searching_string.value.decode(), n_searches ] )
+    #proc = Process( target=check_string_hashes, args = [ searching_string.value.decode(), n_searches ] )
     proc.start()
 
     max_searches:int = ( (cpu_count()/2) -1) # This should be fine for most systems
@@ -51,10 +154,11 @@ def check_word_combinations( working:multiprocessing.sharedctypes.synchronized, 
 
         searching_string.value = get_string_to_search( searching_string.value.decode() ).encode()
 
-
-        a_new_process = Process( target=check_string_hashes, args = [ searching_string.value.decode(), n_searches ] )
+        a_new_process = Process( target=check_string_hashes_by_type, args = [ searching_string.value.decode(), n_searches ] )
+        #a_new_process = Process( target=check_string_hashes, args = [ searching_string.value.decode(), n_searches ] )
         a_new_process.start()
 
+        #check_string_hashes_by_type( searching_string.value.decode(), n_searches ) # Without multithreading
         #check_string_hashes( searching_string.value.decode(), n_searches ) # Without multithreading
 
     
@@ -67,6 +171,8 @@ def check_word_combinations( working:multiprocessing.sharedctypes.synchronized, 
 
 
 def check_string_hashes( string:str, n_searches:multiprocessing.sharedctypes.synchronized ) -> None:
+
+    print("No bueno...")
 
     if string == None:
         print("Error, no string to check hash")
@@ -112,6 +218,7 @@ def check_string_hashes( string:str, n_searches:multiprocessing.sharedctypes.syn
         hash_lookup( string, module_hasher.get_fnva1_hex, hash_list, "t9_64_found.txt")
 
     n_searches.value -= 1
+
 
 def hash_lookup( word:str, hashing_func, hash_list:list, found_file_name) -> None:
 
@@ -161,9 +268,11 @@ def hash_lookup( word:str, hashing_func, hash_list:list, found_file_name) -> Non
 
 def save_found_hash( word:str, hash:hex, found_file_name:str) -> None:
 
-    module_files.log_new_message( f"HASH FOUND! {word} => {hash}" )
-    print( f"HASH FOUND! {word} => {hash}" )
-    module_files.add_found_hash( found_file_name, f"{word} => {hash}\n")
+    module_files.log_new_message( f"HASH FOUND! {word} => {hash} | {found_file_name}" )
+    print( f"HASH FOUND! {word} => {hash} | {found_file_name}\n" )
+
+    module_files.add_found_hash( found_file_name, f"{hash[2:]},{word}\n") # Ate style
+    #module_files.add_found_hash( found_file_name, f"{word} => {hash}\n")
 
 
 
@@ -376,7 +485,7 @@ def is_valid_string( string:str, position:int, new_letter:str) -> bool:
         return False
     
     # No triple rule
-    if is_next_letter( string, position, new_letter)  and is_next_letter( string, position+1, new_letter):
+    if is_next_letter( string, position, new_letter) and is_next_letter( string, position+1, new_letter):
         #if debug:
             #print("No triple rule with: "+string)
         return False

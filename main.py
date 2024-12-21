@@ -24,7 +24,6 @@ T7 32 => 0x86775f0c | 86775f0c
 T8 32 => 0xfc7cb164 | fc7cb164
 FNVA1 => 0x53627c60c07a09f2 | 53627c60c07a09f2
 HashIWRes => 0x549afccc4758bdeb | 549afccc4758bdeb
-HashIWTag => 0x3e163d52 | 3e163d52
 HashJupScr => 0x89b6b9b94add5236 | 89b6b9b94add5236
 HashIWDVar => 0xef63d32cf0037237 | ef63d32cf0037237
 HashT10Scr => 0x876e0ac813f9e747 | 876e0ac813f9e747
@@ -44,9 +43,8 @@ def print_menu_options() -> None:
     print( "\n>==================<" )
     print( "0 / Exit / Quit => Close the program" )
     print( "1 / Try Hash    => You enter a string and get the hashes for it" )
-    print( "2 / List        => Hash list maker from ATE's Dehasher tool" )
-    print( "3 / Collect     => Collect hashes from a source repository" )
-    print( "4 / Dehasher    => Brute force dehasher" )
+    print( "2 / Collect     => Collect hashes from a source repository" )
+    print( "3 / Dehasher    => Brute force dehasher" )
     print( ">==================<\n" )
 
 def translate_option( option:str ) -> int:
@@ -68,17 +66,11 @@ def execute_menu_task( option:int ) -> None:
 
     if option == 1:
         hash_menu()
-        pass
     if option == 2:
-        files_menu()
-        pass
+        collector_menu()
     if option == 3:
-        source_menu()
-        pass
-    if option == 4:
         dehash_menu()
-        pass
-    
+
 def start_menu() -> None:
 
     print_menu_title_message( "Starting program" )
@@ -114,26 +106,11 @@ def hash_menu() -> None:
         hash:str = input( "\n" ).lower()
 
         print( "Hashing '"+hash+"'\n" )
-        '''
-        print( f"T7 32 => { module_hasher.get_t7_32_str( hash ) }\n"
-              f"T8 32 => { module_hasher.get_t8_32_str( hash ) }\n"
-              f"FNVA1 => { module_hasher.get_fnva1_str( hash ) }\n"
-              f"HashIWRes => { module_hasher.get_HashIWRes_str( hash ) }\n"
-              f"HashIWTag => { module_hasher.get_HashIWTag_str( hash ) }\n"
-              f"HashJupScr => { module_hasher.get_HashJupScr_str( hash ) }\n"
-              f"HashIWDVar => { module_hasher.get_HashIWDVar_str( hash ) }\n"
-              f"HashT10Scr => { module_hasher.get_HashT10Scr_str( hash ) }\n"
-              f"HashT10ScrSPPre => { module_hasher.get_HashT10ScrSPPre_str( hash ) }\n"
-              f"HashT10ScrSPPost => { module_hasher.get_HashT10ScrSPPost_str( hash ) }\n"
-              f"HashT10ScrSP => { module_hasher.get_HashT10ScrSP_str( hash ) }\n"
 
-              "\nDo you want to try another Hash?\n" )
-        '''
-        print( f"T7 32 => { module_hasher.get_t7_32_hex( hash ) } | { module_hasher.get_t7_32_str( hash ) }\n"
+        print(f"T7 32 => { module_hasher.get_t7_32_hex( hash ) } | { module_hasher.get_t7_32_str( hash ) }\n"
               f"T8 32 => { module_hasher.get_t8_32_hex( hash ) } | { module_hasher.get_t8_32_str( hash ) }\n"
               f"FNVA1 => { module_hasher.get_fnva1_hex( hash ) } | { module_hasher.get_fnva1_str( hash ) }\n"
               f"HashIWRes => { module_hasher.get_HashIWRes_hex( hash ) } | { module_hasher.get_HashIWRes_str( hash ) }\n"
-              f"HashIWTag => { module_hasher.get_HashIWTag_hex( hash ) } | { module_hasher.get_HashIWTag_str( hash ) }\n"
               f"HashJupScr => { module_hasher.get_HashJupScr_hex( hash ) } | { module_hasher.get_HashJupScr_str( hash ) }\n"
               f"HashIWDVar => { module_hasher.get_HashIWDVar_hex( hash ) } | { module_hasher.get_HashIWDVar_str( hash ) }\n"
               f"HashT10Scr => { module_hasher.get_HashT10Scr_hex( hash ) } | { module_hasher.get_HashT10Scr_str( hash ) }\n"
@@ -210,6 +187,7 @@ def dehash_menu() -> None:
     working = Value( ctypes.c_bool, True )
     searching_string = Array( ctypes.c_char, "aaaaaaaaaaaaaaaa".encode() )
     searching_string.value =  module_files.check_savedata_exists( module_dehasher.get_first_possible_letter() ).encode()
+    searching_string.value = "a".encode()
     print( f"Starting dehashing, currently at => {searching_string.value.decode()}" )
 
     new_thread = Thread( target=main_dehasher.check_word_combinations, args = [ working, searching_string ] )
@@ -261,7 +239,7 @@ def get_option_input( str_input:str ) -> int:
 
 # main_collector START
     
-def source_menu() -> None:
+def collector_menu() -> None:
 
     print( "\n>==================<" )
     print( "0 => Bo3" )
@@ -289,55 +267,30 @@ def source_menu() -> None:
             print("Canceling source menu")
             return
 
-
+    game:str
 
     if option == 0:
         print("Bo3 selected")
+        game = 'bo3'
     elif option == 1:
         print("Bo4 selected")
+        game = 'bo4'
     elif option == 2:
         print("CW selected")
+        game = 'cw'
     elif option == 3:
         print("MWiii selected")
-    elif option == 1:
+        game = 'mwiii'
+    elif option == 4:
         print("Bo6 selected")
+        game = 'bo6'
 
-
+    main_collector.collector(game)
 
 
     print("Ended source")
     return
-    
-    
-    if not os.path.exists( "comp.txt" ) and not os.path.exists( "hashes.txt" ): # Check if there isnt any valid hash file
-        print( "Error, couldnt find 'comp.txt' or 'hashes.txt'\n" )
-        return
-    
-    # comp.txt
-    comp:module_files.Files_class = module_files.Files_class()
-    comp.set_file( "comp.txt", "r" )
 
-    # hashes.txt
-    hashes:module_files.Files_class = module_files.Files_class()
-    hashes.set_file( "hashes.txt", "r" )
-
-    if str_option == "0":
-
-        module_files.log_new_message( "T7 selected" )
-        module_files.get_t7_hashes( comp, hashes )
-
-    elif str_option == "1":
-
-        module_files.log_new_message( "T8 selected" )        
-        module_files.get_t8_hashes( comp, hashes )
-
-    elif str_option == "2":
-
-        module_files.log_new_message( "T9 selected" )
-        module_files.get_t9_hashes( comp, hashes )
-
-    del comp
-    del hashes
 
 # main_collector END
 
@@ -363,9 +316,12 @@ def hash_dvar(dvar : str):
 
 if __name__ == "__main__":
 
-    #start_menu()
+    print( os.path.dirname( os.path.realpath( "found\\mwiii\\found.txt" ) ) )
 
-    main_collector.collector()
+    start_menu()
+
+    #game = "mwiii"
+    #main_collector.collector( game )
 
 
 

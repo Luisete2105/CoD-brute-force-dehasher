@@ -1,3 +1,5 @@
+T10_MP:bool = True
+
 debug:bool = False
 
 class Hasher_class:
@@ -121,7 +123,23 @@ class Hasher_class:
         return int_address_to_string( hash )
 
 
-    def Hash64A( self, str, start = None, iv = None ) -> int:
+
+    def Hash64( self, str, start = None, iv = None ) -> int: # Mask 63 applied
+
+        if start == None:
+            start = self.FNV1A_PRIME
+
+        if iv == None:
+            iv = self.IV_DEFAULT
+
+        hash:int = start
+
+        for byte in  bytes( str, 'utf-8'):
+            hash = ( ( hash ^ ( byte & 0xFF ) ) * iv )
+
+        return hash & self.MASK63
+    
+    def Hash64A( self, str, start = None, iv = None ) -> int: # Mask 64 applied
 
         if start == None:
             start = self.FNV1A_PRIME
@@ -148,31 +166,14 @@ class Hasher_class:
 
         return _hash
     
-    def Hash64( self, str, start = None, iv = None ) -> int:
 
-        if start == None:
-            start = self.FNV1A_PRIME
-
-        if iv == None:
-            iv = self.IV_DEFAULT
-
-        hash:int = start
-
-        for byte in  bytes( str, 'utf-8'):
-            hash = ( ( hash ^ ( byte & 0xFF ) ) * iv )
-
-        return hash & self.MASK63
 	
 
     def HashIWRes( self, string:str, start:int =None, iv = None ) -> int: # HashIWRes is for the script names
 
         return self.Hash64( string, self.FNV1A_IW_PRIME )
 
-    def HashIWTag( self, string:str, start:int =None, iv = None ) -> int: # HashIWTag Idk
-
-        return ( self.Hash64( string, self.FNV1A_32_PRIME, self.IV_32_DEFAULT ) & self.MASK32 )
-
-    def HashIWDVar( self, string:str ) -> int: # HashIWDVar for the dvars
+    def HashIWDVar( self, string:str ) -> int: # IW Dvars : Dvar hash in mwii/mwiii/bo6, @"" gsc operator in mwii/mwiii/bo6
 
         return self.HashSecure( self.XHASHSEC_DVAR_STR, self.FNV1A_IW_DVAR_OFFSET, string, self.IV_TYPE2 )
 
@@ -182,11 +183,18 @@ class Hasher_class:
         return self.Hash64A( string, self.FNV1A_IW_SCR_PRIME, self.IV_TYPE2 )
 
 
+
+    def HashT10Fnva1( self, string:str, start:int =None, iv = None ) -> int: # FNVA1 bo6
+
+        return self.Hash64A( string, self.fnv64Offset, self.fnv64Prime )
+
     def HashT10Scr( self, string:str ) -> int: # HashT10Scr for bo6 mp scr
 
         return self.HashSecure( self.XHASHSEC_T10_SCR_STR, self.FNV1A_T10_SCR_OFFSET, string, self.IV_TYPE2 )
 
-
+    def HashT10ScrSP( self, string:str ) -> int: # Scr hash in bo6 campaign, &"" gsc operator in bo6 campaign
+        
+        return self.HashT10ScrSPPost( self.HashT10ScrSPPre( string ) )
 
         
     def HashT10ScrSPPre( self, string:str, start = 0 ) -> int:
@@ -199,10 +207,7 @@ class Hasher_class:
         
         return self.Hash64A( self.XHASHSEC_T10_SCR_STR, string )
 
-    def HashT10ScrSP( self, string:str ) -> int: # HashT10Scr for bo6 mp scr
-        
-        return self.HashT10ScrSPPost( self.HashT10ScrSPPre( string ) )
-
+ 
 
 
 # Class Hasher END
@@ -243,12 +248,6 @@ def get_HashIWRes_hex( word:str ) -> hex:
 
     return hex( global_hasher.HashIWRes( word ) )
 
-def get_HashIWTag_hex( word:str ) -> hex:
-
-    global global_hasher
-
-    return hex( global_hasher.HashIWTag( word ) )
-
 def get_HashJupScr_hex( word:str ) -> hex:
 
     global global_hasher
@@ -260,6 +259,12 @@ def get_HashIWDVar_hex( word:str ) -> hex:
     global global_hasher
 
     return hex( global_hasher.HashIWDVar( word ) )
+
+def get_HashT10Fnva1_hex( word:str) -> hex:
+
+    global global_hasher
+
+    return hex( global_hasher.HashT10Fnva1( word ) )
 
 def get_HashT10Scr_hex( word:str ) -> hex:
 
@@ -312,12 +317,6 @@ def get_HashIWRes_str( word:str ) -> str:
 
     return int_address_to_string( get_HashIWRes_hex( word ) )
 
-def get_HashIWTag_str( word:str ) -> str:
-
-    global global_hasher
-
-    return int_address_to_string( get_HashIWTag_hex( word ) )
-
 def get_HashJupScr_str( word:str ) -> str:
 
     global global_hasher
@@ -329,6 +328,14 @@ def get_HashIWDVar_str( word:str ) -> str:
     global global_hasher
 
     return int_address_to_string( get_HashIWDVar_hex( word ) )
+
+
+def get_HashT10Fnva1_str( word:str ) -> str:
+
+    global global_hasher
+
+    return int_address_to_string( get_HashT10Fnva1_hex( word ) )
+
 
 def get_HashT10Scr_str( word:str ) -> str:
 
@@ -355,3 +362,71 @@ def get_HashT10ScrSP_str( word:str ) -> str:
 
     return int_address_to_string( get_HashT10ScrSP_hex( word ) )
 
+#//////////////////////////////////////
+
+
+
+t89_canon    = [ 'var_', 'function_', 'namespace_', 'class_', 'event_' ]
+t89_fnva1    = [ 'script_', '#"hash_', '#hash_' ]
+
+mwiii_scr = [ 'var_', 'function_', 'namespace_' ]
+mwiii_res  = [ 'script_', '%"hash_' ]
+mwiii_dvar = [ '@"hash_' ]
+mwiii_fnva1  = [ '#"hash_', '#hash_' ]
+
+T10_scr    = [ 'var_', 'function_', 'namespace_', 'event_' ]
+T10_res    = [ 'script_', 'r"hash_', '%"hash_' ]
+T10_fnva1  = [ '#"hash_', '#hash_' ]
+T10_dvar = [ '@"hash_' ]
+
+
+def hash_func_from_game_and_type(game:str, hash_type:str): # Get the hashing algorithm based on the game and hash type
+
+    if game == "bo3":
+        return get_t7_32_hex
+    
+    if game == "bo4" or game == "cw":
+        if hash_type in t89_fnva1:
+            return get_fnva1_hex
+        elif hash_type in t89_canon:
+            return get_t8_32_hex
+        else:
+            print(f"ERROR, COULDNT FIND HASH_TYPE '{hash_type}' FOR GAME '{game}'")
+            return None
+
+    if game == "mwiii":
+        if hash_type in mwiii_scr: # Equivalent to t89 canon
+            return get_HashJupScr_hex
+        elif hash_type in mwiii_dvar: # Dvars
+            return get_HashIWDVar_hex
+        elif hash_type in mwiii_res: # Resources
+            return get_HashIWRes_hex
+        elif hash_type in mwiii_fnva1: # Classic hashes
+            return get_fnva1_hex
+
+        else:
+            print(f"ERROR, COULDNT FIND HASH_TYPE '{hash_type}' FOR GAME '{game}'")
+            return None
+
+    if game == "bo6":
+        if hash_type in T10_scr: # Equivalent to t89 canon
+
+            if T10_MP:
+                return get_HashT10Scr_hex
+            else:
+                return get_HashT10ScrSP_hex
+
+        elif hash_type in T10_dvar: # Dvars
+            return get_HashIWDVar_hex
+        elif hash_type in T10_res: # Resources
+            return get_HashIWRes_hex
+        elif hash_type in T10_fnva1: # Classic hashes
+            return get_HashT10Fnva1_hex
+
+        else:
+            print(f"ERROR, COULDNT FIND HASH_TYPE '{hash_type}' FOR GAME '{game}'")
+            return None
+
+
+    print(f"ERROR, COULDNT FIND GAME TO GET HASH TYPE'{game}'")
+    return None

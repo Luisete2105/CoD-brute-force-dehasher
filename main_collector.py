@@ -1,15 +1,11 @@
 import os
 import re
+import time
+
+from headers import *
+import headers
 
 from Classes import module_files
-
-global_config   = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', 'event_', 'r"hash_', '%"hash_', '&"hash_', '@"hash_' ]
-
-bo3_prefixes    = [ 'var_', 'function_', 'namespace_', '#"hash_', ]
-bo4_prefixes    = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', 'event_', ]
-CW_prefixes     = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', 'event_' ]
-mwiii_config    = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', 'r"hash_', '%"hash_', '@"hash_' ]
-bo6_prefixes    = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', 'event_', 'r"hash_', '%"hash_', '@"hash_' ]
 
 
 
@@ -18,6 +14,155 @@ file_temp = module_files.Files_class()
 file_reader = module_files.Files_class()
 
 lui_test:int = 0
+debug:bool = True
+
+
+
+def should_skip_file( filename:str )->bool:
+
+    extension:str = filename.split('.')[1]
+
+    if extension == "gsc" or extension == "csc" or extension == "csv" or extension == "ddl" or extension == "json":
+        return False
+
+    if debug:
+        print(f"File '{filename}' skipped due to extension '{extension}' ")
+
+    return True
+
+#start_time:float = time.time()
+#print("--- %s seconds ---" % (time.time() - start_time))
+
+def get_source_for_game(path, game)->str:
+
+    if debug:
+        print(path)
+
+    for name in game_source_names[ game ]:
+
+        if os.path.exists(path+"\\"+name):
+            return path+"\\"+name
+        
+        if os.path.exists(path+"\\"+name+"-source"):
+            return path+"\\"+name+"-source"
+        
+        if os.path.exists(path+"\\"+name+"-source-main"):
+            return path+"\\"+name+"-source-main"
+
+    return ""
+
+def collector( game:str )->None:
+
+    global config
+
+    start_time:float = time.time()
+
+    path = os.path.dirname(os.path.realpath(__file__))+"\\GSC Source\\"
+    #print(path)
+
+    path = get_source_for_game(path, game)
+
+    if path == "":
+        print( f"Cant find source for game '{game}' in path {path}\n" )
+        print("Press any key to conti nue\n\n")
+        input()
+        return
+
+    print(os.path.exists(path))
+    print(path)
+
+    hashes_types = {}
+    for hash_type in config[ game ]:
+        if debug:
+            print(f"Game {game} | {hash_type}")
+        hashes_types[ hash_type ] = []
+
+    for file_content in os.walk( path ):
+
+
+        for file_name in file_content[2]:
+
+            if should_skip_file( file_name ): # Lets skip unnecessary files
+                continue
+
+            if file_name[-3:] == "csv": # Lets skip CSV's for now
+                file_reader.set_file( file_content[0]+"\\"+file_name, 'r', 'utf8' )
+            else:
+                file_reader.set_file( file_content[0]+"\\"+file_name, 'r' )
+
+            try:
+                all_lines = file_reader.file.read()
+                
+            except Exception as err:
+                print(f"Error reading file '{file_content[0]+"\\"+file_name}'")
+                print(f"{type(err).__name__} was raised: {err}")
+                return
+
+
+            for expresion in config[ game ]:
+
+                search = re.findall(expresion+r'\w+' , all_lines)
+
+                if search == None or len(search) < 1: # If we didnt find any just skip to next
+                    continue
+
+                for found_hash in search:
+
+                    try:
+                        hash = int( found_hash[len(expresion):], base=16 )
+
+                        if hash not in hashes_types[ expresion ]:
+                            hashes_types[ expresion ].append( hash )
+                        
+                    except:
+                        
+                        if debug:
+                            #if hash == None:
+                                module_files.log_new_message( f"Hash has no value\n{file_content[0]} " )
+                            #else:
+                            #    module_files.log_new_message( f"Bad hash?\n{file_content[0]} | {hash}" )
+                        continue
+
+    if '#"hash_' in hashes_types.keys() and '#hash_' in hashes_types.keys():
+        for basic_hash in hashes_types[ '#"hash_' ]:
+            if basic_hash not in hashes_types[ '#hash_' ]:
+                hashes_types[ '#hash_' ].append( basic_hash )
+            else:
+                module_files.log_new_message(f"Repeated hash {basic_hash}")
+
+        del hashes_types[ '#"hash_' ]
+
+    for expresion in hashes_types.keys():
+
+        hashes_types[ expresion ].sort()
+        file_name = game+"_"+headers.file_name_by_expresion(expresion)+".txt"
+        os.makedirs(game, exist_ok=True)
+        file_temp.set_file( game+"\\"+file_name, 'w')
+
+        for hash in hashes_types[ expresion ]:
+            new_expresion = ""
+            for char in expresion:
+                if char == '"':
+                    continue
+                new_expresion += char
+
+            file_temp.write_to_file( str( hex(hash) )[2:]+","+new_expresion+str( hex(hash) )[2:]+"\n" ) # Ate style
+
+    print("--- %s seconds ---" % (time.time() - start_time))
+
+
+
+
+
+#print( os.path.dirname( os.path.realpath( "main.py" ) ) )
+#print( os.path.dirname( os.path.realpath( "main_dehasher.py" ) ) )
+#print( os.path.dirname( os.path.realpath( "Classes\\module_dehasher.py" ) ) )
+#print( os.path.dirname( os.path.realpath( "GSC Source\\mwiii-source" ) ) )
+#print( os.path.dirname( os.path.realpath( "GSC Source\\" ) ) )
+#print( os.path.dirname( os.path.realpath( "GSC Source" ) ) )
+
+
+# UNUSED
 
 def read_paths_files( read_this ):
 
@@ -33,193 +178,3 @@ def read_paths_files( read_this ):
 
     lui_test += 1
 
-
-def collector()->None:
-
-    print( os.path.dirname( os.path.realpath( __file__ ) ) )
-    #os.walk( os.path.dirname( os.path.realpath( "GSC Source\\mwiii-source" ) ) )
-
-    counter:int = 0
-
-    file_writer.set_file( "read_test.txt", 'w' )
-    file_temp.set_file( "temp.txt", 'w' )
-
-    temp_buffer = []
-
-    hashes_types = {}
-    for config in mwiii_config:
-        hashes_types[ config ] = []
-
-    for file_content in os.walk( os.path.dirname( os.path.realpath( "GSC Source\\mwiii-source" ) ) ):
-
-        counter += 1
-        #read_paths_files(file_content)
-        
-        file_writer.write_to_file( str(counter)+"/ PATH: '"+str( file_content[0] )+"'\n"   )
-
-        for file_name in file_content[2]:
-            #file_writer.write_to_file( "File name '"+file_name[:-4]+" | Extension '"+file_name[-3:]+"'\n"   )
-
-            extension = file_name[-3:]
-            if extension == "csv": # Lets skip CSV's for now
-                continue
-
-            #file_writer.write_to_file( "File name '"+file_name+" | Extension '"+extension+"' | "+str(extension=="csv")+"\n\n" )
-            file_reader.set_file( file_content[0]+"\\"+file_name, 'r' )
-            #all_lines = file_reader.file.readlines()
-
-            all_lines = file_reader.file.read()
-            #file_writer.write_to_file( "File name '"+file_name+" | Extension '"+extension+"' | "+str(extension=="csv")+"\n\n" )
-            #file_writer.write_to_file( all_lines )
-
-            for expresion in mwiii_config:
-                #search = re.findall(r'\b'+expresion+r'\w+' , all_lines)
-                search = re.findall(r''+expresion+r'\w+' , all_lines)
-
-                if search == None or len(search) < 1: # If we didnt find any just skip to next
-                    continue
-
-                for found_hash in search:
-
-                    try:
-                        hash = int( found_hash[len(expresion):], base=16 )
-
-                        if hash not in hashes_types[ expresion ]:
-                            hashes_types[ expresion ].append( hash )
-                        
-                    except:
-                        continue
-
-        
-        file_writer.write_to_file( "\n\n"   )
-
-        #if counter > 18: # Limit the amount of scripts searched for Debuging purposes
-        #    break
-
-    for expresion in mwiii_config:
-
-        hashes_types[ expresion ].sort()
-        file_name = "mwiii_"+file_name_by_expresion(expresion)+".txt"
-
-        os.makedirs("mwiii", exist_ok=True)
-
-        file_temp.set_file( "mwiii\\"+file_name, 'w')
-
-        for hash in hashes_types[ expresion ]:
-            #file_temp.write_to_file( str( hex(hash) )[2:]+"\n" )
-            new_expresion = ""
-            for char in expresion:
-                if char == '"':
-                    continue
-                new_expresion += char
-
-            file_temp.write_to_file( str( hex(hash) )[2:]+","+new_expresion+str( hex(hash) )[2:]+"\n" ) # Ate style
-
-
-
-
-def file_name_by_expresion( expresion )->str:
-
-    new_name:str = ""
-
-    for char in expresion:
-        if char == '"' or char == '_':
-            continue
-        new_name += char
-
-    return new_name
-
-
-
-#print( os.path.dirname( os.path.realpath( "main.py" ) ) )
-#print( os.path.dirname( os.path.realpath( "main_dehasher.py" ) ) )
-#print( os.path.dirname( os.path.realpath( "Classes\\module_dehasher.py" ) ) )
-#print( os.path.dirname( os.path.realpath( "GSC Source\\mwiii-source" ) ) )
-#print( os.path.dirname( os.path.realpath( "GSC Source\\" ) ) )
-#print( os.path.dirname( os.path.realpath( "GSC Source" ) ) )
-
-
-
-
-
-
-
-
-
-def source_menu() -> None:
-
-    print( "\n>==================<" )
-    print( "0 => Bo3" )
-    print( "1 => Bo4" )
-    print( "2 => CW" )
-    print( "3 => MWiii" )
-    print( "4 => Bo6" )
-    print( "Anything else => Cancel\n" )
-    print( ">==================<\n" )
-
-    #str_option:str = input().lower()
-
-    try:
-        option:int = int(input().lower())
-
-    except ValueError:
-        print("Not a number, canceling source menu")
-        return
-    except:
-        print("Unknown error")
-        return
-    
-    else:
-        if option < 0 or option > 4:
-            print("Canceling source menu")
-            return
-
-
-
-    if option == 0:
-        print("Bo3 selected")
-    elif option == 1:
-        print("Bo4 selected")
-    elif option == 2:
-        print("CW selected")
-    elif option == 3:
-        print("MWiii selected")
-    elif option == 1:
-        print("Bo6 selected")
-
-
-
-
-    print("Ended source")
-    return
-    
-    
-    if not os.path.exists( "comp.txt" ) and not os.path.exists( "hashes.txt" ): # Check if there isnt any valid hash file
-        print( "Error, couldnt find 'comp.txt' or 'hashes.txt'\n" )
-        return
-    
-    # comp.txt
-    comp:module_files.Files_class = module_files.Files_class()
-    comp.set_file( "comp.txt", "r" )
-
-    # hashes.txt
-    hashes:module_files.Files_class = module_files.Files_class()
-    hashes.set_file( "hashes.txt", "r" )
-
-    if str_option == "0":
-
-        module_files.log_new_message( "T7 selected" )
-        module_files.get_t7_hashes( comp, hashes )
-
-    elif str_option == "1":
-
-        module_files.log_new_message( "T8 selected" )        
-        module_files.get_t8_hashes( comp, hashes )
-
-    elif str_option == "2":
-
-        module_files.log_new_message( "T9 selected" )
-        module_files.get_t9_hashes( comp, hashes )
-
-    del comp
-    del hashes
