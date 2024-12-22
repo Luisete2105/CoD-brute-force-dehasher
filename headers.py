@@ -12,7 +12,7 @@ HashT10ScrSP => 0x15ee02a1a1b976c5 | 15ee02a1a1b976c5
 
 # Hash types
 
-global_config   = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', '#hash_', 'class_' 'event_', 'r"hash_', '%"hash_', '&"hash_', '@"hash_' ]
+#global_config   = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', '#hash_', 'class_' 'event_', 'r"hash_', '%"hash_', '&"hash_', '@"hash_' ]
 
     # var       : source hash
     # function  : source hash

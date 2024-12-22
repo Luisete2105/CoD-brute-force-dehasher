@@ -14,7 +14,7 @@ file_temp = module_files.Files_class()
 file_reader = module_files.Files_class()
 
 lui_test:int = 0
-debug:bool = True
+debug:bool = False
 
 
 
@@ -55,10 +55,12 @@ def collector( game:str )->None:
 
     global config
 
-    start_time:float = time.time()
+    if debug:
+        start_time:float = time.time()
 
     path = os.path.dirname(os.path.realpath(__file__))+"\\GSC Source\\"
-    #print(path)
+    if debug:
+        print(path)
 
     path = get_source_for_game(path, game)
 
@@ -68,8 +70,8 @@ def collector( game:str )->None:
         input()
         return
 
-    print(os.path.exists(path))
-    print(path)
+    if debug:
+        print(f"Exists '{path}' ? {os.path.exists(path)}")
 
     hashes_types = {}
     for hash_type in config[ game ]:
@@ -82,10 +84,13 @@ def collector( game:str )->None:
 
         for file_name in file_content[2]:
 
+            #if file_name "zm_zod_ee.csc": # debug line
+            #continue
+
             if should_skip_file( file_name ): # Lets skip unnecessary files
                 continue
 
-            if file_name[-3:] == "csv": # Lets skip CSV's for now
+            if file_name[-3:] == "csv":
                 file_reader.set_file( file_content[0]+"\\"+file_name, 'r', 'utf8' )
             else:
                 file_reader.set_file( file_content[0]+"\\"+file_name, 'r' )
@@ -96,10 +101,16 @@ def collector( game:str )->None:
             except Exception as err:
                 print(f"Error reading file '{file_content[0]+"\\"+file_name}'")
                 print(f"{type(err).__name__} was raised: {err}")
+                module_files.log_new_message(f"Error reading file '{file_content[0]+"\\"+file_name}'")
+                module_files.log_new_message(f"{type(err).__name__} was raised: {err}")
                 return
 
 
+
             for expresion in config[ game ]:
+
+                if debug:
+                    module_files.log_new_message(f"Searching for  '{expresion}' in file '{file_name}'")
 
                 search = re.findall(expresion+r'\w+' , all_lines)
 
@@ -117,11 +128,15 @@ def collector( game:str )->None:
                     except:
                         
                         if debug:
-                            #if hash == None:
-                                module_files.log_new_message( f"Hash has no value\n{file_content[0]} " )
-                            #else:
-                            #    module_files.log_new_message( f"Bad hash?\n{file_content[0]} | {hash}" )
+                            if found_hash == None:
+                                module_files.log_new_message( f"Hash has no value \n{file_content[0]} " )
+                            else:
+                                module_files.log_new_message( f"Wrong hash '{found_hash}'\n{file_content[0]} " )
                         continue
+
+
+
+
 
     if '#"hash_' in hashes_types.keys() and '#hash_' in hashes_types.keys():
         for basic_hash in hashes_types[ '#"hash_' ]:
@@ -148,8 +163,8 @@ def collector( game:str )->None:
 
             file_temp.write_to_file( str( hex(hash) )[2:]+","+new_expresion+str( hex(hash) )[2:]+"\n" ) # Ate style
 
-    print("--- %s seconds ---" % (time.time() - start_time))
-
+    if debug:
+        print("--- %s seconds ---" % (time.time() - start_time))
 
 
 

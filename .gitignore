@@ -1,7 +1,16 @@
-.vscode
-project.code-workspace
+/.vscode/
+/project.code-workspace/
 
-__pycache__
+/__pycache__/
+/Classes/__pycache__/
 
-lui.txt
-lui_log.txt
+/lui.txt
+/lui_log.txt
+
+/GSC Source/
+
+/bo3/
+/bo4/
+/cw/
+/mwiii/
+/bo6/
