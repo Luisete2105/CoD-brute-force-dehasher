@@ -39,9 +39,9 @@ config[ "cw" ]     = cw_config
 config[ "mwiii" ]  = mwiii_config
 config[ "bo6" ]    = bo6_config
 
-bo3_source_names    = [ 't7', 'bo3', 'blackops3', 'black-ops-3' ]
-bo4_source_names    = [ 't8', 'bo4', 'blackops4', 'black-ops-4' ]
-cw_source_names     = [ 't9', 'cw', 'coldwar', 'cold-war' ]
+bo3_source_names    = [ 't7', 'bo3', 'blackops3', 'blackops-3', 'black-ops-3' ]
+bo4_source_names    = [ 't8', 'bo4', 'blackops4', 'blackops-4', 'black-ops-4' ]
+cw_source_names     = [ 't9', 'cw', 'coldwar', 'bocw', 'blackopscoldwar', 'cold-war', 'black-ops-cold-war' ]
 mwiii_source_names  = [ 'jup', 'mwiii', 'modernwarfareiii', 'modern-warfare-iii' ]
 bo6_source_names    = [ 't10', 'bo6', 'blackops6', 'black-ops-6' ]
 

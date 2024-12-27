@@ -57,13 +57,18 @@ def check_string_hashes_by_type( string:str, n_searches:multiprocessing.sharedct
         game = "bo3"
         for hash_type in config[ game ]:
 
+            
+
             file_name = game+"_"+headers.file_name_by_expresion(hash_type)+".txt"
+
 
             if os.path.exists( game+"\\"+file_name ):
 
                 hash_list = module_files.get_hex_lines_ate_style( game+"\\"+file_name )
                 hashing_function = module_hasher.hash_func_from_game_and_type( game, hash_type)
-                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+hash_type+"found.txt")
+
+                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+headers.file_name_by_expresion(hash_type)+"_found.txt")
+
 
 
     if bo4 and os.path.exists( "bo4" ):
@@ -77,7 +82,8 @@ def check_string_hashes_by_type( string:str, n_searches:multiprocessing.sharedct
 
                 hash_list = module_files.get_hex_lines_ate_style( game+"\\"+file_name )
                 hashing_function = module_hasher.hash_func_from_game_and_type( game, hash_type)
-                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+hash_type+"found.txt")
+
+                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+headers.file_name_by_expresion(hash_type)+"_found.txt")
 
 
     if cw and os.path.exists( "cw" ):
@@ -91,7 +97,8 @@ def check_string_hashes_by_type( string:str, n_searches:multiprocessing.sharedct
 
                 hash_list = module_files.get_hex_lines_ate_style( game+"\\"+file_name )
                 hashing_function = module_hasher.hash_func_from_game_and_type( game, hash_type)
-                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+hash_type+"found.txt")
+
+                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+headers.file_name_by_expresion(hash_type)+"_found.txt")
 
 
     if mwiii and os.path.exists( "mwiii" ):
@@ -105,7 +112,8 @@ def check_string_hashes_by_type( string:str, n_searches:multiprocessing.sharedct
 
                 hash_list = module_files.get_hex_lines_ate_style( game+"\\"+file_name )
                 hashing_function = module_hasher.hash_func_from_game_and_type( game, hash_type)
-                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+hash_type+"found.txt")
+
+                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+headers.file_name_by_expresion(hash_type)+"_found.txt")
 
 
     if bo6 and os.path.exists( "bo6" ):
@@ -119,7 +127,8 @@ def check_string_hashes_by_type( string:str, n_searches:multiprocessing.sharedct
 
                 hash_list = module_files.get_hex_lines_ate_style( game+"\\"+file_name )
                 hashing_function = module_hasher.hash_func_from_game_and_type( game, hash_type)
-                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+hash_type+"found.txt")
+
+                hash_lookup( string, hashing_function, hash_list, "Found\\"+game+"\\"+game+"_"+headers.file_name_by_expresion(hash_type)+"_found.txt")
 
 
     n_searches.value -= 1
@@ -223,7 +232,7 @@ def check_string_hashes( string:str, n_searches:multiprocessing.sharedctypes.syn
 def hash_lookup( word:str, hashing_func, hash_list:list, found_file_name) -> None:
 
     if debug:
-        print( f"Searching {word} => {hashing_func(word)} | {found_file_name.split("_found")[0]}" )
+        print( f"Searching {word} => {hashing_func(word)} | {found_file_name.split("_found")[0]}\n" )
 
     if hashing_func(word) in hash_list: # Search the string without prefixes or suffixes
         save_found_hash(word, hashing_func(word), found_file_name)
@@ -236,18 +245,23 @@ def hash_lookup( word:str, hashing_func, hash_list:list, found_file_name) -> Non
 
             if word[ len(word)-1 ] != "_": # Can add suffixes
 
-                for prefix in global_dehasher.prefixes[category]: # Looping thorugh prefixes
+                for prefix in global_dehasher.prefixes[category]: # Looping prefixes
 
                     if hashing_func(prefix+word) in hash_list:
+
                         save_found_hash(prefix+word, hashing_func(prefix+word), found_file_name)
 
-                    for suffix in global_dehasher.suffixes[category]: # Looping though suffixes
-
-                        if hashing_func(word+suffix) in hash_list:
-                            save_found_hash(word+suffix, hashing_func(word+suffix), found_file_name)
+                    for suffix in global_dehasher.suffixes[category]: # Looping all prefix+suffix combinations
 
                         if hashing_func(prefix+word+suffix) in hash_list:
+
                             save_found_hash(prefix+word+suffix, hashing_func(prefix+word+suffix), found_file_name)
+
+                for suffix in global_dehasher.suffixes[category]: # Looping ONLY suffixes
+
+                    if hashing_func(word+suffix) in hash_list:
+                        save_found_hash(word+suffix, hashing_func(word+suffix), found_file_name)
+
 
             else: # Can add prefixes but not suffixes
                     
@@ -256,6 +270,7 @@ def hash_lookup( word:str, hashing_func, hash_list:list, found_file_name) -> Non
                         if hashing_func(prefix+word) in hash_list:
                             save_found_hash(prefix+word, hashing_func(prefix+word), found_file_name)
         
+
         else: # Cant add prefixes
 
             if word[ len(word)-1 ] != "_": # Cant add prefixes but can add suffixes

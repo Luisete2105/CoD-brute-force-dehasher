@@ -130,11 +130,11 @@ class Dehasher_class:
             "a_", "b_", "s_", "t_", "m_", "v_", "w_",
             "a_w_", "a_b_", "a_s_", "a_t_", "a_m_", "a_v_", "a_w_", "a_e_",
 
-            "sp_", "a_sp", "fx_", "ent_"
+            "sp_", "a_sp", "fx_", "ent_",
 
             "mdl_", "a_mdl_", "m_a_mdl_" "model_", "trigger_", "dir_",
             "zm_", "zombie_",
-            "margwa_", "keeper_", "shadowman_", "trasher_", "mangler_", "rapz", "wasp_", "spider_"
+            "margwa_", "keeper_", "shadowman_", "trasher_", "mangler_", "rapz", "wasp_", "spider_",
             "player_", "a_player_", "s_player_", "players_", "a_players_", "s_players_",
 
             "ee_", "devgui_", "dev_", "debug_"
@@ -146,7 +146,8 @@ class Dehasher_class:
             "_zombie", "_zm", "_uid", "_id", "_ent", "_clip", "_ent", "_weapon",
             "_trigger", "_spawn", "_dir", "_pos", "_trig", "_switch", "_lever", "_button",
 
-            "_ee", "_devgui", "_dev", "_debug"
+            "_ee", "_devgui", "_dev", "_debug",
+            "_shadowman"
 
 
             ] )  

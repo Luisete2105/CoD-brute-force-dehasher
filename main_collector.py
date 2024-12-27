@@ -20,7 +20,14 @@ debug:bool = False
 
 def should_skip_file( filename:str )->bool:
 
-    extension:str = filename.split('.')[1]
+    splits:str = filename.split('.')
+
+    if( len( splits ) < 2 ): # Doesnt have extension
+        if debug:
+            print(f"File '{filename}' skipped due to missing extension")
+        return True
+
+    extension:str = splits[1]
 
     if extension == "gsc" or extension == "csc" or extension == "csv" or extension == "ddl" or extension == "json":
         return False
@@ -103,7 +110,10 @@ def collector( game:str )->None:
                 print(f"{type(err).__name__} was raised: {err}")
                 module_files.log_new_message(f"Error reading file '{file_content[0]+"\\"+file_name}'")
                 module_files.log_new_message(f"{type(err).__name__} was raised: {err}")
-                return
+                #return
+
+                file_reader.file = open(file_content[0]+"\\"+file_name, 'r', encoding = 'utf8', errors='ignore')
+
 
 
 
