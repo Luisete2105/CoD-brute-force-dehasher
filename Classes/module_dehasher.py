@@ -143,7 +143,7 @@ class Dehasher_class:
         
         self.add_suffix( "generic", [
 
-            "_zombie", "_zm", "_uid", "_id", "_ent", "_clip", "_ent", "_weapon",
+            "_zombie", "_zm", "_uid", "_id", "_clip", "_ent", "_weapon",
             "_trigger", "_spawn", "_dir", "_pos", "_trig", "_switch", "_lever", "_button",
 
             "_ee", "_devgui", "_dev", "_debug",

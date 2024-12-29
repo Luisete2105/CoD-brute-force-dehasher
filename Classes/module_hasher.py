@@ -385,7 +385,7 @@ def hash_func_from_game_and_type(game:str, hash_type:str): # Get the hashing alg
     if game == "bo3":
         return get_t7_32_hex
     
-    if game == "bo4" or game == "cw":
+    if game == "bo4" or game == "bocw":
         if hash_type in t89_fnva1:
             return get_fnva1_hex
         elif hash_type in t89_canon:

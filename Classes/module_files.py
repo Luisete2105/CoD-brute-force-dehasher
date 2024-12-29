@@ -316,13 +316,27 @@ def add_found_hash( found_file_name:str, message:str ) -> None:
 
     global global_files
 
+    debug = False
+
     path = os.path.dirname( os.path.realpath( found_file_name ) )
     if not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
 
 
-    global_files.set_file( found_file_name, "a" )
-    global_files.write_to_file( message )
+    global_files.set_file( found_file_name, "r+" )
+
+    found_hashes = global_files.file.readlines()
+
+
+    if message in found_hashes:
+        if debug:
+            print(f"{message} | Hash already found... | {found_file_name}")
+            log_new_message( f"{message} Hash already found... | {found_file_name}" )
+    else:
+        if debug:
+            log_new_message( f"HASH FOUND! {message} | {found_file_name}" )
+            print( f"HASH FOUND! {message} | {found_file_name}\n" )
+        global_files.write_to_file( message )
 
     global_files.close_file()
 

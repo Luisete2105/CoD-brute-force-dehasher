@@ -11,24 +11,8 @@ from threading import Thread
 import main_dehasher
 import main_collector
 
-from Classes import module_hasher
-from Classes import module_files
-from Classes import module_dehasher
+from Classes import module_files, module_hasher, module_dehasher
 
-
-
-
-'''
-Hashing 'pleudir'
-T7 32 => 0x86775f0c | 86775f0c
-T8 32 => 0xfc7cb164 | fc7cb164
-FNVA1 => 0x53627c60c07a09f2 | 53627c60c07a09f2
-HashIWRes => 0x549afccc4758bdeb | 549afccc4758bdeb
-HashJupScr => 0x89b6b9b94add5236 | 89b6b9b94add5236
-HashIWDVar => 0xef63d32cf0037237 | ef63d32cf0037237
-HashT10Scr => 0x876e0ac813f9e747 | 876e0ac813f9e747
-HashT10ScrSP => 0xa1753b83db2c84b7 | a1753b83db2c84b7
-'''
 
 debug:bool = False
 
@@ -45,17 +29,18 @@ def print_menu_options() -> None:
     print( "1 / Try Hash    => You enter a string and get the hashes for it" )
     print( "2 / Collect     => Collect hashes from a source repository" )
     print( "3 / Dehasher    => Brute force dehasher" )
+    print( "4 / Source      => Create / Add the found hashes to a hashes source" )
     print( ">==================<\n" )
 
 def translate_option( option:str ) -> int:
 
-    if option == "4" or option == "dehasher":
+    if option == "4" or option == "source":
         return 4
-    if option == "3" or option == "collect":
+    if option == "3" or option == "dehasher":
         return 3
-    if option == "2" or option == "list":
+    if option == "2" or option == "collect":
         return 2
-    if option == "1" or option == "hash" or option == "try hash":
+    if option == "1" or option == "try" or option == "hash" or option == "try hash":
         return 1
     elif option == "0" or option == "exit" or option == "quit":
         return 0
@@ -70,6 +55,8 @@ def execute_menu_task( option:int ) -> None:
         collector_menu()
     if option == 3:
         dehash_menu()
+    if option == 4:
+        main_collector.add_found_hashes_to_src()
 
 def start_menu() -> None:
 
@@ -224,6 +211,7 @@ def dehash_menu() -> None:
             print("ERROR: Killing problematic thread")
             new_thread.terminate()
 
+    main_collector.sort_found_hashes()
 
 def get_option_input( str_input:str ) -> int:
 
@@ -243,7 +231,7 @@ def collector_menu() -> None:
     print( "\n>==================<" )
     print( "0 => Bo3" )
     print( "1 => Bo4" )
-    print( "2 => CW" )
+    print( "2 => BoCW" )
     print( "3 => MWiii" )
     print( "4 => Bo6" )
     print( "Anything else => Cancel\n" )
@@ -275,8 +263,8 @@ def collector_menu() -> None:
         print("Bo4 selected")
         game = 'bo4'
     elif option == 2:
-        print("CW selected")
-        game = 'cw'
+        print("BoCW selected")
+        game = 'bocw'
     elif option == 3:
         print("MWiii selected")
         game = 'mwiii'
@@ -315,15 +303,6 @@ def hash_dvar(dvar : str):
 
 if __name__ == "__main__":
 
-    print( os.path.dirname( os.path.realpath( "found\\mwiii\\found.txt" ) ) )
-
     start_menu()
-
-    #game = "mwiii"
-    #main_collector.collector( game )
-
-
-
-
     print_menu_title_message( "Exiting program" )
 

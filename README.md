@@ -1,7 +1,7 @@
 # CoD brute force dehasher
  My attempt to port the brute force dehasher I made on GSC to Python so I dont need to keep bo4 open and hopefully it will be faster
 
-# 1.03
+# 1.04
 
 - Try Hash:
     Hashes your input to various algorithms
@@ -10,6 +10,7 @@
 
 - Collect:
     Gets the hashes for Bo3, Bo4, CW, MWiii or Bo6. The source folder must be placed in 'GSC Source' folder.
+    I do not provide links to GSC deompilations since different repositories have different hashes and even may contain more files, so the outcome of the collector will be different, you just download your favorite one.
 
     The name of the folder must be a combination of the game's name and -source / -source-main, eg: bo3, t8-source, coldwar-source, jup-source-main, modern-warfare-iii or blackops6
 
@@ -34,3 +35,12 @@
 
     The map of the "weird 2 character combinations" can be found scrolling down on the same file on a giant table, this table has every letter on each row and column, when a "weird" match happens, said combination is writen in the chart where they meet, blank spaces mean its allowed.
     The giant "switch" (if/elif) right under is a translation of the table.
+
+- Source:
+
+    Inside the "hashes" folder, creates a game+"-scr.csv" file with all the hashes found by the brute force dehasher and sorts them, in case there was an already existing hash source file, it mixes them while keeping them sorted, its highly recommended to place on the "hashes" folder the current known hash indexes of the public repository of Ate47.
+
+    # HOW TO ADD SOURCE HASHES
+    1) Download the "Source Code (zip)", link is at the bottom from Ate's Hash index repository ( https://github.com/ate47/HashIndex/releases/tag/release ).
+    2) Extract the downloaded zip and copy the "hashes" folder.
+    3) Paste the "hashes" folder in the root of CoD Brute Force Dehasher, which is where "main.py" is.

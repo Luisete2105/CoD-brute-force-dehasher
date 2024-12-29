@@ -28,20 +28,20 @@ HashT10ScrSP => 0x15ee02a1a1b976c5 | 15ee02a1a1b976c5
 
 bo3_config    = [ 'var_', 'function_', 'namespace_', '#"hash_', 'class_' ]
 bo4_config    = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', '#hash_', 'class_', 'event_' ]
-cw_config     = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', '#hash_', 'class_', 'event_' ]
+bocw_config     = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', '#hash_', 'class_', 'event_' ]
 mwiii_config  = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', '#hash_', '%"hash_', '@"hash_' ]
 bo6_config    = [ 'var_', 'function_', 'namespace_', 'script_', '#"hash_', '#hash_', 'event_', 'r"hash_', '%"hash_', '@"hash_' ]
 
 config = {}
 config[ "bo3" ]    = bo3_config
 config[ "bo4" ]    = bo4_config
-config[ "cw" ]     = cw_config
+config[ "bocw" ]   = bocw_config
 config[ "mwiii" ]  = mwiii_config
 config[ "bo6" ]    = bo6_config
 
 bo3_source_names    = [ 't7', 'bo3', 'blackops3', 'blackops-3', 'black-ops-3' ]
 bo4_source_names    = [ 't8', 'bo4', 'blackops4', 'blackops-4', 'black-ops-4' ]
-cw_source_names     = [ 't9', 'cw', 'coldwar', 'bocw', 'blackopscoldwar', 'cold-war', 'black-ops-cold-war' ]
+bocw_source_names     = [ 't9', 'cw', 'coldwar', 'bocw', 'blackopscoldwar', 'cold-war', 'black-ops-cold-war' ]
 mwiii_source_names  = [ 'jup', 'mwiii', 'modernwarfareiii', 'modern-warfare-iii' ]
 bo6_source_names    = [ 't10', 'bo6', 'blackops6', 'black-ops-6' ]
 
@@ -50,7 +50,7 @@ bo6_source_names    = [ 't10', 'bo6', 'blackops6', 'black-ops-6' ]
 game_source_names = {}
 game_source_names[ "bo3" ]  = bo3_source_names
 game_source_names[ "bo4" ]  = bo4_source_names
-game_source_names[ "cw" ]   = cw_source_names
+game_source_names[ "bocw" ] = bocw_source_names
 game_source_names[ "mwiii" ]= mwiii_source_names
 game_source_names[ "bo6" ]  = bo6_source_names
 

@@ -177,6 +177,167 @@ def collector( game:str )->None:
         print("--- %s seconds ---" % (time.time() - start_time))
 
 
+def sort_found_hashes() -> None:
+    
+    path = os.path.dirname(os.path.realpath(__file__))+"\\Found\\"
+
+    if not os.path.exists(path): # Not found hashes
+        print( "Cant find 'Found' folder...")
+        return
+    else:
+        if debug:
+            print( "Fond folder located!")
+
+    print(f"Path: {path}")
+    
+    for game in config.keys():
+        
+        game_path = path+game
+        if not os.path.exists(game_path):
+            #print("There are not found hashes for game: "+{game})
+            continue
+
+        all_lines:list = []
+
+        for file_content in os.walk( game_path ):
+            
+            for file_name in file_content[2]:
+
+                #print(f"Sorting {file_name}")
+
+                file_reader.set_file( file_content[0]+"\\"+file_name, 'r+', 'utf8' )
+                new_lines = file_reader.file.readlines()
+                for line in new_lines:
+                    if line not in all_lines:
+                        all_lines.append( line )
+
+        indexed_hash_list = []
+        for line in all_lines:
+            indexed_hash_list.append( int( line.split(',')[0], base = 16 ) )
+
+        indexed_hash_list.sort()
+
+
+
+        #all_lines.sort()
+
+        file_reader.set_file( path+"\\"+game+"-scr.csv", 'w', 'utf8' )
+
+        #module_files.log_new_message(f"\n\nGame: {game}\n\n")
+
+        #for sorted_line in all_lines:
+        for sorted_line in indexed_hash_list:
+
+            module_files.log_new_message(f"Searching for {sorted_line}")
+
+            for line in all_lines:
+                hash = int( line.split(',')[0], base = 16 )
+                if hash == sorted_line:
+                    #module_files.log_new_message(f"Found! {hash} => '{line.strip()}'")
+
+                    file_reader.write_to_file( line )
+                    all_lines.remove(line)
+                    break
+
+            #file_reader.write_to_file(sorted_line)
+
+
+        #print(f"game: {game}")
+
+    #print(f"All found hashes sorted!")
+    file_reader.close_file
+
+
+def add_found_hashes_to_src() -> None:
+    
+    found_path = os.path.dirname(os.path.realpath(__file__))+"\\Found\\"
+
+    if not os.path.exists(found_path): # Not found hashes
+        print( "Cant find 'Found' folder...")
+        return
+    else:
+        if debug:
+            print( "Found folder located!")
+
+
+    hash_scr_path = os.path.dirname(os.path.realpath(__file__))+"\\hashes\\"
+
+    if not os.path.exists(hash_scr_path): # Not found hashes
+        print( "Cant find 'hashes' folder...\nCreated a folder to place game-scr.csv from Ate47 hash index repository")
+        os.makedirs(hash_scr_path, exist_ok=True)
+        return
+    else:
+        if debug:
+            print( "hashes folder located!")
+
+    if not os.path.exists(found_path): # Not found hashes
+        print( "Cant find 'Found' folder...")
+        return
+    else:
+        if debug:
+            print( "Fond folder located!")
+
+    print(f"Found path: {found_path}")
+
+    for game in config.keys():
+        
+        found_hash_scr_path = found_path+game+"-scr.csv"
+        if not os.path.exists(found_hash_scr_path):
+            print(f"There are not found hashes for game: {game}")
+            continue
+
+        index_hash_scr_path = hash_scr_path+game+"-scr.csv"
+        if not os.path.exists(index_hash_scr_path):
+            print(f"There are not index hashes for game: {game}")
+            file_reader.set_file( index_hash_scr_path, 'a', 'utf8' )
+            print(f"Created a hash-scr file for game: {game}")
+            #continue
+
+        temp_array:list = []
+        all_lines:list = []
+
+        file_reader.set_file( found_hash_scr_path, 'r', 'utf8' )
+        temp_array = file_reader.file.readlines()
+
+        for line in temp_array:
+            all_lines.append( line )
+
+        file_reader.set_file( index_hash_scr_path, 'r+', 'utf8' )
+        temp_array = []
+
+        temp_array = file_reader.file.readlines()
+        for line in temp_array:
+            if line not in all_lines:
+                all_lines.append( line )
+            else:
+                module_files.log_new_message(f"Duplicated hash! Game: {game} | {line}")
+
+
+        indexed_hash_list:list = []
+        for line in all_lines:
+            indexed_hash_list.append( int( line.split(',')[0], base = 16 ) )
+
+        indexed_hash_list.sort()
+        file_reader.set_file( index_hash_scr_path, 'w', 'utf8' )
+
+        for sorted_line in indexed_hash_list:
+
+            module_files.log_new_message(f"Searching for {sorted_line}")
+
+            for line in all_lines:
+                hash = int( line.split(',')[0], base = 16 )
+                if hash == sorted_line:
+                    module_files.log_new_message(f"Found! {hash} => '{line.strip()}'")
+
+                    file_reader.write_to_file( line )
+                    all_lines.remove(line)
+                    break
+
+
+        print(f"game: {game}")
+
+    print(f"All found hashes sorted AND mixed!")
+    file_reader.close_file
 
 
 #print( os.path.dirname( os.path.realpath( "main.py" ) ) )

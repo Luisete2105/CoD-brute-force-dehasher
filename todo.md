@@ -1,6 +1,6 @@
 # Bugs
 
-- Sometimes, it checks twice the same hash for the same collected hashes file
+- Currently None!
 
 # Things to improve
 
