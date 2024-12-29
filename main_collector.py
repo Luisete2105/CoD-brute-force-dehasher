@@ -187,8 +187,6 @@ def sort_found_hashes() -> None:
     else:
         if debug:
             print( "Fond folder located!")
-
-    print(f"Path: {path}")
     
     for game in config.keys():
         
@@ -276,8 +274,6 @@ def add_found_hashes_to_src() -> None:
     else:
         if debug:
             print( "Fond folder located!")
-
-    print(f"Found path: {found_path}")
 
     for game in config.keys():
         
