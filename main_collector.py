@@ -189,7 +189,7 @@ def sort_found_hashes() -> None:
             print( "Fond folder located!")
     
     for game in config.keys():
-        
+
         game_path = path+game
         if not os.path.exists(game_path):
             #print("There are not found hashes for game: "+{game})
@@ -211,6 +211,10 @@ def sort_found_hashes() -> None:
 
         indexed_hash_list = []
         for line in all_lines:
+            if len( line.split(',') ) != 2:
+                #print(f"{game}: Skipping bad line '{line}'")
+                all_lines.remove( line )
+                continue
             indexed_hash_list.append( int( line.split(',')[0], base = 16 ) )
 
         indexed_hash_list.sort()
@@ -226,7 +230,7 @@ def sort_found_hashes() -> None:
         #for sorted_line in all_lines:
         for sorted_line in indexed_hash_list:
 
-            module_files.log_new_message(f"Searching for {sorted_line}")
+            #module_files.log_new_message(f"Searching for {sorted_line}")
 
             for line in all_lines:
                 hash = int( line.split(',')[0], base = 16 )
@@ -234,7 +238,7 @@ def sort_found_hashes() -> None:
                     #module_files.log_new_message(f"Found! {hash} => '{line.strip()}'")
 
                     file_reader.write_to_file( line )
-                    all_lines.remove(line)
+                    all_lines.remove( line )
                     break
 
             #file_reader.write_to_file(sorted_line)
@@ -252,7 +256,8 @@ def add_found_hashes_to_src() -> None:
 
     if not os.path.exists(found_path): # Not found hashes
         print( "Cant find 'Found' folder...")
-        return
+        os.makedirs(found_path, exist_ok=True)
+        #return
     else:
         if debug:
             print( "Found folder located!")
@@ -279,6 +284,7 @@ def add_found_hashes_to_src() -> None:
         
         found_hash_scr_path = found_path+game+"-scr.csv"
         if not os.path.exists(found_hash_scr_path):
+            module_files.log_new_message(f"There are not found hashes for game: {game}")
             print(f"There are not found hashes for game: {game}")
             continue
 
@@ -296,7 +302,8 @@ def add_found_hashes_to_src() -> None:
         temp_array = file_reader.file.readlines()
 
         for line in temp_array:
-            all_lines.append( line )
+            if line not in all_lines:
+                all_lines.append( line )
 
         file_reader.set_file( index_hash_scr_path, 'r+', 'utf8' )
         temp_array = []
@@ -306,11 +313,15 @@ def add_found_hashes_to_src() -> None:
             if line not in all_lines:
                 all_lines.append( line )
             else:
-                module_files.log_new_message(f"Duplicated hash! Game: {game} | {line}")
+                if debug:
+                    module_files.log_new_message(f"Duplicated hash! Game: {game} | {line}")
 
 
         indexed_hash_list:list = []
         for line in all_lines:
+            if len( line.split(',') ) != 2:
+                #print(f"Skipping bad line{line}")
+                continue
             indexed_hash_list.append( int( line.split(',')[0], base = 16 ) )
 
         indexed_hash_list.sort()
@@ -318,12 +329,16 @@ def add_found_hashes_to_src() -> None:
 
         for sorted_line in indexed_hash_list:
 
-            module_files.log_new_message(f"Searching for {sorted_line}")
+            #module_files.log_new_message(f"Searching for {sorted_line}")
 
             for line in all_lines:
+                if len( line.split(',') ) != 2:
+                    #print(f"Skipping bad line{line}")
+                    continue
+
                 hash = int( line.split(',')[0], base = 16 )
                 if hash == sorted_line:
-                    module_files.log_new_message(f"Found! {hash} => '{line.strip()}'")
+                    #module_files.log_new_message(f"Found! {hash} => '{line.strip()}'")
 
                     file_reader.write_to_file( line )
                     all_lines.remove(line)
