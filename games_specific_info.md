@@ -4,6 +4,7 @@
 General Data types and hash extraction table
 
 | Data type | Data names  | Patterns   | Games                      | Examples                                       | Expected hash extraction/s |
+|-----------|-------------|------------|----------------------------|------------------------------------------------|----------------------------|
 | SCR       | Variables   | var_       | bo3, bo4, bocw, mwiii, bo6 | var_1069f2d4, level.var_9578a7ed2d4e36ed       | 1069f2d4, 9578a7ed2d4e36ed |
 | SCR       | Functions   | function_  | bo3, bo4, bocw, mwiii, bo6 | function_385ef18d, function_936cbcc0667fb087   | 385ef18d, 936cbcc0667fb087 |
 | SCR       | Namespace   | namespace_ | bo3, bo4, bocw, mwiii, bo6 | namespace_9c39c8b3, namespace_4848403b6f5b0da0 | 9c39c8b3, 4848403b6f5b0da0 |
