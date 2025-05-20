@@ -2,9 +2,10 @@ import os
 import re
 from pathlib import Path
 from datetime import datetime
+import queue
 
 class ScriptProcessor:
-    def __init__(self, log_callback=None):
+    def __init__(self, log_callback=None, progress_var=None):
         self.unhashed_words = []
         self.hashed_words = []
         self.hash_quoted_strings = set()
@@ -14,6 +15,9 @@ class ScriptProcessor:
         self.iw_resources_strings = set()
         self.iw_dvars_strings = set()
         self.omnvar_strings = set()
+        self.total_files = 0
+        self.processed_files = 0
+        self.progress_var = progress_var
 
         self.hash_to_string = {
             "643a7daf": "disconnect"
@@ -52,13 +56,11 @@ class ScriptProcessor:
             "Black Ops 6": ['@o"hash_']
         }
 
-        # Initialize log file
         self.log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "script_manager.log")
         if not os.path.exists(self.log_file_path):
             with open(self.log_file_path, 'w', encoding='utf-8') as f:
                 f.write("Script Manager Log\n")
 
-        # Callback for real-time log updates
         self.log_callback = log_callback
 
     def log_action(self, message):
@@ -66,7 +68,6 @@ class ScriptProcessor:
         log_message = f"[{timestamp}] {message}\n"
         with open(self.log_file_path, 'a', encoding='utf-8') as f:
             f.write(log_message)
-        # Notify the UI of the new log message
         if self.log_callback:
             self.log_callback(log_message)
 
@@ -85,7 +86,7 @@ class ScriptProcessor:
                     return True, dt
         return False, None
 
-    def process_scripts(self, folder, detected_game):
+    def process_scripts(self, folder, detected_game, result_queue=None):
         from game_detector import get_default_hash_function
         from cod_hashes import (
             base_fnv1a_63, base_fnv1a_64, base_fnv1a_32, iw_resources, mwii_iii_scr,
@@ -116,10 +117,9 @@ class ScriptProcessor:
 
         valid_exts = ('.gsc', '.csc', '.gsh', '.ddl', '.json', '.csv', '.raw', '.txt', '.lua')
 
-        script_path_pattern = re.compile(r'#using\s+(scripts/[^;\n]+\.(gsc|csc))\s*;')
+        script_path_pattern = re.compile(r'#using\s+(scripts/[^;\n]+\.(?:gsc|csc))\s*;')
         hashed_script_pattern = re.compile(r'#(using|include)\s+script_([0-9a-f]{16})\s*;')
-        hash_pattern = re.compile(r'#(?:"hash_|hash_)([0-9a-f]+)"')
-        hash_no_quote_pattern = re.compile(r'#hash_([0-9a-f]+)\b')
+        hash_pattern = re.compile(r'#(?:"hash_|hash_)([0-9a-f]+)"?')
         r_hash_pattern = re.compile(r'r"hash_([0-9a-f]+)"')
         percent_hash_pattern = re.compile(r'%"hash_([0-9a-f]+)"')
         and_hash_pattern = re.compile(r'&"hash_([0-9a-f]+)"')
@@ -127,10 +127,8 @@ class ScriptProcessor:
         dvar_hash_pattern = re.compile(r'@"hash_([0-9a-f]+)"')
         omnvar_hash_pattern = re.compile(r'@o"hash_([0-9a-f]+)"')
 
-        # Define supported_resources at method scope
         supported_resources = self.supported_resources_types.get(detected_game, [])
 
-        # Generator to yield progress for each file
         def process_files():
             for root_dir, _, files in os.walk(folder):
                 for file in files:
@@ -138,14 +136,17 @@ class ScriptProcessor:
                         file_path = Path(root_dir) / file
                         yield file_path
 
-        total_files = sum(1 for _ in process_files())
-        processed_files = 0
+        self.total_files = sum(1 for _ in process_files())
+        self.processed_files = 0
 
         for file_path in process_files():
-            processed_files += 1
-            self.log_action(f"Processing file {processed_files}/{total_files}: {file_path}")
+            self.processed_files += 1
+            if self.total_files > 0 and self.progress_var:
+                self.progress_var.set((self.processed_files / self.total_files) * 100)
+            self.log_action(f"Processing file {self.processed_files}/{self.total_files}: {file_path}")
             try:
-                if file.endswith('.raw'):
+                content = None
+                if file_path.suffix == '.raw':
                     try:
                         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                             content = f.read()
@@ -159,7 +160,7 @@ class ScriptProcessor:
                     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
 
-                if not content.strip():
+                if not content or not content.strip():
                     continue
 
                 content = content.replace('\\', '/')
@@ -174,8 +175,11 @@ class ScriptProcessor:
 
                 script_paths = script_path_pattern.findall(content)
                 for script_path in script_paths:
+                    if isinstance(script_path, tuple):
+                        self.log_action(f"Warning: script_path is unexpectedly a tuple: {script_path}")
+                        script_path = script_path[0]  # Fallback in case regex fails
                     if (script_path and not re.search(r'\s', script_path) and
-                        re.match(r'^scripts/.*\.(gsc|csc)$', script_path)):
+                        re.match(r'^scripts/.*\.(?:gsc|csc)$', script_path)):
                         self.known_hash_mappings.add(script_path)
 
                 content = re.sub(r'//.*', '', content)
@@ -184,11 +188,6 @@ class ScriptProcessor:
                 if '#"hash_' in supported_resources or '#hash_' in supported_resources:
                     hashed_strings = hash_pattern.findall(content)
                     for hashed in hashed_strings:
-                        if hashed and not re.search(r'\s', hashed):
-                            self.hash_quoted_strings.add(hashed)
-
-                    hashed_strings_no_quote = hash_no_quote_pattern.findall(content)
-                    for hashed in hashed_strings_no_quote:
                         if hashed and not re.search(r'\s', hashed):
                             self.hash_quoted_strings.add(hashed)
 
@@ -222,13 +221,13 @@ class ScriptProcessor:
                         if hashed and not re.search(r'\s', hashed):
                             self.iw_dvars_strings.add(hashed)
 
-                if '@o"hash_' in self.supported_omnvar_types.get(detected_game, []) and file.endswith('.lua'):
+                if '@o"hash_' in self.supported_omnvar_types.get(detected_game, []) and file_path.suffix == '.lua':
                     omnvar_hashes = omnvar_hash_pattern.findall(content)
                     for hashed in omnvar_hashes:
                         if hashed and not re.search(r'\s', hashed):
                             self.omnvar_strings.add(hashed)
 
-                known_hashed_strings = re.findall(r'#(?:"(?!hash_)|)([^"\n]+)"?', content)
+                known_hashed_strings = re.findall(r'#"([^"\n]+)(?<!hash_)"', content)
                 for known in known_hashed_strings:
                     if (known and known not in keywords and
                         not re.search(r'\s', known) and
@@ -240,7 +239,7 @@ class ScriptProcessor:
                 for quoted in quoted_strings:
                     if (quoted and quoted not in keywords and
                         not re.search(r'\s', quoted) and
-                        not any(token in known for token in tokens) and
+                        not any(token in quoted for token in tokens) and
                         re.match(r'^[a-zA-Z0-9_]+$', quoted) and
                         quoted not in self.hash_quoted_strings and
                         quoted not in self.known_hash_mappings):
@@ -278,6 +277,12 @@ class ScriptProcessor:
         self.iw_dvars_strings = sorted(set(self.iw_dvars_strings))
         self.omnvar_strings = sorted(set(self.omnvar_strings))
         total_words = len(self.unhashed_words) + len(self.hashed_words)
+
+        self.log_action(f"known_hash_mappings size: {len(self.known_hash_mappings)}, sample: {list(self.known_hash_mappings)[:10]}")
+        self.log_action(f"hash_quoted_strings size: {len(self.hash_quoted_strings)}, sample: {list(self.hash_quoted_strings)[:10]}")
+        self.log_action(f"iw_resources_strings size: {len(self.iw_resources_strings)}, sample: {list(self.iw_resources_strings)[:10]}")
+        self.log_action(f"iw_dvars_strings size: {len(self.iw_dvars_strings)}, sample: {list(self.iw_dvars_strings)[:10]}")
+        self.log_action(f"omnvar_strings size: {len(self.omnvar_strings)}, sample: {list(self.omnvar_strings)[:10]}")
 
         game_dir = self.get_game_dir(detected_game)
         os.makedirs(game_dir, exist_ok=True)
@@ -371,24 +376,33 @@ class ScriptProcessor:
 
             if hash_func:
                 word_for_hashing = word.replace('\\', '/')
+                if isinstance(word_for_hashing, tuple):
+                    self.log_action(f"Error: Expected string, got tuple in known_hash_mappings: {word_for_hashing}")
+                    continue
                 hash_value = hash_func(word_for_hashing)
                 hash_str = f"{hash_value:x}" if hash_func.__name__.endswith("_63") or hash_func.__name__.endswith("_64") else f"{hash_value:08x}"
-                general_hashes.add((hash_str, word))
+                general_hashes.add((hash_str, word_for_hashing))
 
         if detected_game in ["Black Ops 6", "Modern Warfare III"]:
             for iw_string in self.iw_resources_strings:
+                if isinstance(iw_string, tuple):
+                    self.log_action(f"Error: Expected string, got tuple in iw_resources_strings: {iw_string}")
+                    continue
                 hash_value = iw_resources(iw_string)
                 hash_str = f"{hash_value:x}"
                 general_hashes.add((hash_str, iw_string))
 
         for hash_string in self.hash_quoted_strings:
+            if isinstance(hash_string, tuple):
+                self.log_action(f"Error: Expected string, got tuple in hash_quoted_strings: {hash_string}")
+                continue
             hash_func = None
-            if hash_string in [h for h in and_hash_pattern.findall(content)]:
+            if and_hash_pattern.search(f'&"hash_{hash_string}"'):
                 if detected_game == "Modern Warfare III":
                     hash_func = mwii_iii_scr
                 elif detected_game == "Black Ops 6":
                     hash_func = black_ops_6_scr if not is_sp_folder else black_ops_6_sp_scr
-            elif hash_string in [h for h in t_hash_pattern.findall(content)]:
+            elif t_hash_pattern.search(f't"hash_{hash_string}"'):
                 if detected_game == "Modern Warfare III":
                     hash_func = base_fnv1a_32
                 elif detected_game == "Black Ops 6":
@@ -401,12 +415,18 @@ class ScriptProcessor:
 
         if '@"hash_' in self.supported_dvar_types.get(detected_game, []):
             for dvar_string in self.iw_dvars_strings:
+                if isinstance(dvar_string, tuple):
+                    self.log_action(f"Error: Expected string, got tuple in iw_dvars_strings: {dvar_string}")
+                    continue
                 hash_value = iw_dvars(dvar_string)
                 hash_str = f"{hash_value:x}"
                 general_hashes.add((hash_str, dvar_string))
 
         if '@o"hash_' in self.supported_omnvar_types.get(detected_game, []):
             for omnvar_string in self.omnvar_strings:
+                if isinstance(omnvar_string, tuple):
+                    self.log_action(f"Error: Expected string, got tuple in omnvar_strings: {omnvar_string}")
+                    continue
                 hash_value = black_ops_6_omnvars(omnvar_string)
                 hash_str = f"{hash_value:x}"
                 general_hashes.add((hash_str, omnvar_string))
@@ -433,19 +453,19 @@ class ScriptProcessor:
 
         dictionary_values = set()
         for word in self.known_hash_mappings:
-            if word:
+            if word and not isinstance(word, tuple):
                 dictionary_values.add(word)
         for word in self.non_hash_quoted_strings:
-            if word:
+            if word and not isinstance(word, tuple):
                 dictionary_values.add(word)
         for iw_string in self.iw_resources_strings:
-            if iw_string:
-                dictionary_values.add(iw_string)
+            if iw_string and not isinstance(iw_string, tuple):
+                dictionary_values.add(word)
         for dvar_string in self.iw_dvars_strings:
-            if dvar_string:
+            if dvar_string and not isinstance(dvar_string, tuple):
                 dictionary_values.add(dvar_string)
         for omnvar_string in self.omnvar_strings:
-            if omnvar_string:
+            if omnvar_string and not isinstance(omnvar_string, tuple):
                 dictionary_values.add(omnvar_string)
 
         dictionary_file = os.path.join(game_dir, f"{short_game_name}_dictionary.csv")
@@ -463,4 +483,7 @@ class ScriptProcessor:
                 if word:
                     f.write(f"{word}\n")
 
-        return total_words, len(self.unhashed_words), len(self.hashed_words)
+        result = (total_words, len(self.unhashed_words), len(self.hashed_words))
+        if result_queue:
+            result_queue.put(result)
+        return result
