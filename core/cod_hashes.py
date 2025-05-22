@@ -28,7 +28,6 @@ def hash_bo4cw_scr(string):
         hash_val = temp + (temp >> 6)
     return (0x8001 * ((9 * hash_val) ^ ((9 * hash_val) >> 11))) & 0xFFFFFFFF
 
-# Wrapper functions per game variant
 def base_fnv1a_63(string):
     return fnv1a(string.lower(), 0xCBF29CE484222325, 0x100000001B3, 0x7FFFFFFFFFFFFFFF)
 

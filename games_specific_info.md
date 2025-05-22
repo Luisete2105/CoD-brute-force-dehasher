@@ -1,6 +1,4 @@
 
-[HASHES EXPLANATION MADE BY ATE47]( https://github.com/ate47/HashIndex/blob/main/docs/hashes.md )
-
 General Data types and hash extraction table
 
 | Data type | Data names  | Patterns   | Games                      | Examples                                       | Expected hash extraction/s |
@@ -13,6 +11,7 @@ General Data types and hash extraction table
 | RESOURCES | Hashes      | #"hash_    | bo3, bo4, bocw, mwiii, bo6 | #"hash_52b06792de26b86b"                       | 52b06792de26b86b           |
 | RESOURCES | Hashes      | "#hash_    | bo3, bo4, bocw, mwiii, bo6 | "#hash_448210df69276e85"                       | 448210df69276e85           |
 | RESOURCES | Hashes      | #hash_     | bo3, bo4, bocw, mwiii, bo6 | #hash_d0453aea97fe80a6                         | d0453aea97fe80a6           |
+| RESOURCES | Hashes      | hash_      | bo3, bo4, bocw, mwiii, bo6 | hash_52b06792de26b86b                          | 52b06792de26b86b           |
 | RESOURCES | Scripts     | script_    | bo4, bocw, mwiii, bo6      | script_19163c4e4e504a5e                        | 19163c4e4e504a5e           |
 | RESOURCES | R_Hashes    | r"hash_    | mwiii, bo6                 | r"hash_619f3b379de7ef46"                       | 619f3b379de7ef46           |
 | RESOURCES | %_Hashes    | %"hash_    | mwiii, bo6                 | %"hash_4f1c2cdc046bbe60"                       | 4f1c2cdc046bbe60           |
@@ -37,17 +36,21 @@ Specific RESOURCES detail
 |Game full name     | Game short name | RESOURCES algorithm | Patterns                                 |
 |-------------------|-----------------|--------------------|-------------------------------------------|
 |Black Ops 3        | bo3             | black_ops_3_scr    | #"hash_                                   |
+|Black Ops 3        | bo3             | black_ops_3_scr    | hash_                                     |
 |Black Ops 4        | bo4             | base_fnv1a_63      | #"hash_                                   |
 |Black Ops 4        | bo4             | base_fnv1a_63      | "#hash_                                   |
 |Black Ops 4        | bo4             | base_fnv1a_63      | #hash_                                    |
+|Black Ops 4        | bo4             | base_fnv1a_63      | hash_                                     |
 |Black Ops 4        | bo4             | base_fnv1a_63      | script_                                   |
-|Black Ops Cold War | bo4             | base_fnv1a_63      | #"hash_                                   |
-|Black Ops Cold War | bo4             | base_fnv1a_63      | "#hash_                                   |
-|Black Ops Cold War | bo4             | base_fnv1a_63      | #hash_                                    |
-|Black Ops Cold War | bo4             | base_fnv1a_63      | script_                                   |
+|Black Ops Cold War | bocw            | base_fnv1a_63      | #"hash_                                   |
+|Black Ops Cold War | bocw            | base_fnv1a_63      | "#hash_                                   |
+|Black Ops Cold War | bocw            | base_fnv1a_63      | #hash_                                    |
+|Black Ops Cold War | bocw            | base_fnv1a_63      | hash_                                     |
+|Black Ops Cold War | bocw            | base_fnv1a_63      | script_                                   |
 |Moder Warfare III  | mwiii           | base_fnv1a_63      | #"hash_                                   |
 |Moder Warfare III  | mwiii           | base_fnv1a_63      | "#hash_                                   |
 |Moder Warfare III  | mwiii           | base_fnv1a_63      | #hash_                                    |
+|Moder Warfare III  | mwiii           | base_fnv1a_63      | hash_                                     |
 |Moder Warfare III  | mwiii           | iw_resources       | script_                                   |
 |Moder Warfare III  | mwiii           | iw_resources       | r"hash_                                   |
 |Moder Warfare III  | mwiii           | iw_resources       | %"hash_                                   |
@@ -56,11 +59,13 @@ Specific RESOURCES detail
 |Black Ops 6        | bo6             | base_fnv1a_64      | #"hash_                                   |
 |Black Ops 6        | bo6             | base_fnv1a_64      | "#hash_                                   |
 |Black Ops 6        | bo6             | base_fnv1a_64      | #hash_                                    |
+|Black Ops 6        | bo6             | base_fnv1a_64      | hash_                                     |
 |Black Ops 6        | bo6             | iw_resources       | script_                                   |
 |Black Ops 6        | bo6             | iw_resources       | r"hash_                                   |
 |Black Ops 6        | bo6             | iw_resources       | %"hash_                                   |
 |Black Ops 6        | bo6             | black_ops_6_scr    | &"hash_ If script is NOT inside SP folder |
-|Black Ops 6        | bo6             | black_ops_6_sp_scr | t"hash_ If script is inside SP folder     |
+|Black Ops 6        | bo6             | black_ops_6_sp_scr | &"hash_ If script is inside SP folder     |
+|Black Ops 6        | bo6             | base_fnv1a_32      | t"hash_                                   |
 
 IW Dvars detail
 

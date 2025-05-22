@@ -11,8 +11,14 @@ def update_console(app, log_message):
         app.root.update_idletasks()
 
 def load_log_contents(app):
-    log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "script_manager.log")
+    # Move debug.log to root folder
+    log_file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "debug.log")
     try:
+        # Create log file if it doesn't exist
+        if os.path.exists(log_file_path):
+            os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+            with open(log_file_path, 'w', encoding='utf-8') as f:
+                f.write("Debug Log\n")
         with open(log_file_path, 'r', encoding='utf-8') as f:
             log_content = f.read()
         app.console_text.config(state="normal")

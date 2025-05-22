@@ -1,32 +1,45 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog
 import os
-from datetime import datetime
-from config_manager import ConfigManager
-from script_processor import ScriptProcessor
-from game_detector import detect_game, get_default_hash_function, get_game_specific_hashes, get_all_hashes
-from gui_tabs import setup_game_extract_tab, setup_hash_tab
-from gui_utils import update_console, load_log_contents, update_game_label, copy_to_clipboard
-import threading
+import multiprocessing as mp
 import queue
+from datetime import datetime
+from utils.config_manager import ConfigManager
+from core.script_processor import ScriptProcessor
+from core.game_detector import detect_game, get_all_hashes
+from gui.gui_tabs import setup_game_extract_tab, setup_hash_tab, setup_csv_selection_ui
+from utils.gui_utils import update_console, load_log_contents, update_game_label, copy_to_clipboard
+from gui.extraction_manager import ExtractionManager
 
 class WordExtractorApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Call of Duty Script Manager (UI Beta)")
         self.root.geometry("800x600")
-        self.root.configure(bg="#FF8C00")
+        self.root.configure(bg="#E07B00")
 
+        self.root_folder = os.path.dirname(os.path.abspath(__file__))
         self.folder_path = tk.StringVar()
         self.detected_game = "Unknown"
-        self.last_execution = 0
-        self.cooldown_period = 2
         self.progress = tk.DoubleVar(value=0)
         self.is_processing = False
-        self.result_queue = queue.Queue()
+        manager = mp.Manager()
+        self.result_queue = manager.Queue()
+        self.progress_queue = manager.Queue()
+        self.log_queue = manager.Queue()
 
-        self.processor = ScriptProcessor(log_callback=lambda msg: update_console(self, msg), progress_var=self.progress)
+        self.processor = ScriptProcessor(
+            log_file_path=os.path.join(self.root_folder, "debug.log"),
+            progress_queue=self.progress_queue
+        )
         self.config_manager = ConfigManager()
+        self.extraction_manager = ExtractionManager(self.log_queue, self.progress_queue)
+
+        last_folder = self.config_manager.get_folder()
+        if last_folder and os.path.exists(last_folder):
+            self.folder_path.set(last_folder)
+            self.detected_game = detect_game(last_folder)
+            self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Loaded last folder from settings.json: {last_folder}\nDetected game: {self.detected_game}")
 
         self.button_style = {
             "bg": "#D3D3D3", "fg": "#000000",
@@ -35,170 +48,176 @@ class WordExtractorApp:
         }
         self.frame_style = {
             "bg": "#222222",
-            "highlightbackground": "#FF8C00",
+            "highlightbackground": "#E07B00",
+            "highlightcolor": "#E07B00",
             "highlightthickness": 2,
-            "bd": 0
+            "bd": 0,
+            "relief": "solid"
         }
         self.label_style = {
             "bg": "#222222",
             "fg": "#000000",
             "bd": 2,
             "relief": "solid",
-            "highlightbackground": "#FF8C00",
+            "highlightbackground": "#E07B00",
             "highlightthickness": 2
         }
         self.no_border_label_style = {
             "bg": "#222222",
-            "fg": "#FF8C00",
+            "fg": "#E07B00",
             "font": ("TkDefaultFont", 20)
         }
 
         self.create_gui()
+        self.update_button_states()
+        self._check_queues()
 
     def create_gui(self):
-        content_frame = tk.Frame(self.root, bg="#222222")
-        content_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        notebook = ttk.Notebook(self.root)
+        notebook.pack(pady=5, padx=10, expand=True, fill="both")
 
-        style = ttk.Style()
-        style.configure("TNotebook", background="#222222")
-        style.configure("TNotebook.Tab", background="#D3D3D3", foreground="#000000", padding=[10, 5], borderwidth=2)
-        style.map("TNotebook.Tab",
-                  background=[("selected", "#B0B0B0"), ("active", "#C0C0C0")],
-                  foreground=[("selected", "#FF8C00"), ("active", "#000000")],
-                  relief=[("selected", "solid")])
-        style.configure("Treeview", background="#D3D3D3", fieldbackground="#D3D3D3", foreground="#000000")
-        style.configure("Treeview.Heading", background="#D3D3D3", foreground="#000000")
-        style.map("Treeview", background=[("selected", "#B0B0B0"), ("!selected", "#D3D3D3")])
+        self.game_frame = ttk.Frame(notebook, style="TFrame")
+        hash_frame = ttk.Frame(notebook, style="TFrame")
 
-        notebook = ttk.Notebook(content_frame, style="TNotebook")
-        notebook.pack(fill="both", expand=True, padx=10, pady=10)
+        notebook.add(self.game_frame, text="Game & Extraction")
+        notebook.add(hash_frame, text="Hash Display")
 
-        game_extract_tab = tk.Frame(notebook, bg="#222222", highlightbackground="#FF8C00", highlightthickness=2)
-        notebook.add(game_extract_tab, text="Game & Extraction")
-        setup_game_extract_tab(self, game_extract_tab)
+        setup_game_extract_tab(self, self.game_frame)
+        setup_hash_tab(self, hash_frame)
 
-        hash_tab = tk.Frame(notebook, bg="#222222", highlightbackground="#FF8C00", highlightthickness=2)
-        notebook.add(hash_tab, text="Hash Display")
-        setup_hash_tab(self, hash_tab)
-
-        console_frame = ttk.Frame(content_frame, style="TFrame")
-        console_frame.pack(fill="both", padx=10, pady=5)
-        ttk.Label(console_frame, text="Log Console:", background="#3C3C3C", foreground="#000000").pack(anchor="w")
-        console_inner_frame = ttk.Frame(console_frame, style="TFrame")
-        console_inner_frame.pack(fill="both", expand=True)
-        self.console_text = tk.Text(
-            console_inner_frame, height=6, bg="#3C3C3C", fg="#FFFFFF",
-            wrap=tk.WORD, state="disabled"
-        )
-        self.console_text.pack(side=tk.LEFT, fill="both", expand=True)
-        scrollbar = ttk.Scrollbar(
-            console_inner_frame, orient=tk.VERTICAL, command=self.console_text.yview
-        )
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.console_frame = tk.Frame(self.root, bg="#222222")
+        self.console_frame.pack(fill="both", padx=10, pady=(5, 10), expand=True)
+        self.console_text = tk.Text(self.console_frame, height=6, bg="#333333", fg="#FFFFFF", state="disabled")
+        self.console_text.pack(side="left", fill="both", expand=True)
+        scrollbar = ttk.Scrollbar(self.console_frame, orient="vertical", command=self.console_text.yview)
+        scrollbar.pack(side="right", fill="y")
         self.console_text.config(yscrollcommand=scrollbar.set)
-
         load_log_contents(self)
 
-        last_folder = self.config_manager.get_folder()
-        if last_folder and os.path.exists(last_folder):
-            self.folder_path.set(last_folder)
-            self.detected_game = detect_game(last_folder)
-            self.processor.log_action(f"Initial folder loaded: {last_folder}, Detected game: {self.detected_game}")
-            update_game_label(self)
-
-    def update_hash_results(self, event=None):
-        for item in self.hash_tree.get_children():
-            self.hash_tree.delete(item)
-        input_text = self.hash_input.get().strip()
-        if input_text:
-            hash_results = get_all_hashes(input_text)
-            for label, hash_value in hash_results:
-                self.hash_tree.insert("", "end", values=(label, hash_value, input_text))
-        else:
-            dummy_results = get_all_hashes("dummy")
-            hash_types = [label for label, _ in dummy_results]
-            for label in hash_types:
-                self.hash_tree.insert("", "end", values=(label, "", ""))
+        style = ttk.Style()
+        style.configure("TFrame", background="#222222", bordercolor="#E07B00", borderwidth=2, relief="solid")
+        style.configure("TButton", background="#D3D3D3", foreground="#000000")
+        style.configure("TLabel", background="#222222", foreground="#E07B00")
+        style.configure("Custom.TEntry", 
+                        fieldbackground="#333333", 
+                        foreground="#E07B00", 
+                        selectforeground="#E07B00", 
+                        selectbackground="#FFD700")
+        style.map("Custom.TEntry", 
+                  foreground=[('active', '#E07B00'), ('focus', '#E07B00'), ('!focus', '#E07B00'), ('selected', '#E07B00'), ('disabled', '#E07B00')],
+                  fieldbackground=[('active', '#333333'), ('focus', '#333333'), ('!focus', '#333333'), ('selected', '#333333'), ('disabled', '#333333')],
+                  selectforeground=[('active', '#E07B00'), ('focus', '#E07B00'), ('!focus', '#E07B00'), ('selected', '#E07B00'), ('disabled', '#E07B00')],
+                  selectbackground=[('active', '#FFD700'), ('focus', '#FFD700'), ('!focus', '#FFD700'), ('selected', '#FFD700'), ('disabled', '#FFD700')])
+        style.configure("TProgressbar", troughcolor="#333333", background="#E07B00")
+        style.configure("Treeview", background="#D3D3D3", fieldbackground="#D3D3D3")
+        style.configure("Treeview.Heading", background="#B0B0B0", foreground="#000000")
+        self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Configured Custom.TEntry with foreground=#E07B00, selectforeground=#E07B00, selectbackground=#FFD700 for all states")
 
     def select_folder(self):
         folder = filedialog.askdirectory()
-        if folder:  # Only update if a folder was selected
+        if folder:
             self.folder_path.set(folder)
             self.config_manager.save_config(folder)
             self.detected_game = detect_game(folder)
-            self.processor.log_action(f"New folder selected: {folder}, Detected game: {self.detected_game}")
             update_game_label(self)
-            self.update_hash_results()
-            load_log_contents(self)
+            self.update_button_states()
+            if hasattr(self, 'csv_frame'):
+                setup_csv_selection_ui(self, self.game_frame)
+            self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Folder selected: {folder}, Detected game: {self.detected_game}, CSV UI refreshed")
 
-    def extract_words_wrapper(self):
-        current_time = datetime.now().timestamp()
-        time_since_last = current_time - self.last_execution
-
-        if time_since_last < self.cooldown_period:
-            remaining = self.cooldown_period - time_since_last
-            self.status_label.config(text=f"Please wait {remaining:.1f} seconds...", foreground="#FF0000")
-            self.extract_button.config(state="disabled")
+    def update_button_states(self):
+        if self.is_processing:
             self.browse_button.config(state="disabled")
-            self.root.after(int(remaining * 1000), self.reset_cooldown)
+            self.extract_button.config(state="disabled")
+        else:
+            self.browse_button.config(state="normal")
+            self.extract_button.config(state="normal" if self.detected_game != "Unknown" else "disabled")
+
+    def refresh_csv_buttons(self):
+        for widget in self.game_frame.winfo_children():
+            widget.destroy()
+        setup_game_extract_tab(self, self.game_frame)
+        self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Refreshed entire Game & Extraction tab after extraction")
+
+    def _check_queues(self):
+        try:
+            while True:
+                log_message = self.log_queue.get_nowait()
+                update_console(self, log_message + "\n")
+        except queue.Empty:
+            pass
+
+        try:
+            while True:
+                progress = self.progress_queue.get_nowait()
+                self.progress.set(progress)
+                self.progress_bar.update()
+        except queue.Empty:
+            pass
+
+        was_processing = self.is_processing
+        if self.extraction_manager.is_processing():
+            self.is_processing = True
+        else:
+            self.is_processing = False
+            if was_processing and not self.is_processing:
+                self.refresh_csv_buttons()
+
+        self.update_button_states()
+        self.root.after(100, self._check_queues)
+
+    def run_extraction(self):
+        if self.is_processing:
+            self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Extraction already in progress")
             return
 
-        self.last_execution = current_time
-        self.extract_button.config(state="disabled")
-        self.browse_button.config(state="disabled")
-        self.status_label.config(text="Processing...", foreground="#FF0000")
-        self.is_processing = True
-        self.progress.set(0)
-        self.root.after(100, self.extract_words)
-
-    def reset_cooldown(self):
-        self.extract_button.config(state="normal")
-        self.browse_button.config(state="normal")
-        self.status_label.config(text="Ready", foreground="#00FF00")
-        load_log_contents(self)
-        self.is_processing = False
-
-    def extract_words(self):
         folder = self.folder_path.get()
         if not folder:
-            messagebox.showerror("Error", "Please select a folder first!")
-            self.reset_cooldown()
+            self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] No folder selected")
             return
 
-        thread = threading.Thread(
-            target=self.processor.process_scripts,
-            args=(folder, self.detected_game, self.result_queue)
-        )
-        thread.daemon = True
-        thread.start()
+        self.progress.set(0)
+        self.is_processing = True
+        self.update_button_states()
+        self.extraction_manager.start_extraction(folder, self.detected_game)
 
-        self.root.after(100, self.check_queue)
+    def on_treeview_click(self, event):
+        region = self.hash_tree.identify_region(event.x, event.y)
+        if region != "cell":
+            return
+        column = self.hash_tree.identify_column(event.x)
+        if column != "#4":
+            return
+        item_id = self.hash_tree.identify_row(event.y)
+        if item_id and item_id in self.hash_values:
+            copy_to_clipboard(self, self.hash_values[item_id])
+            self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Copied hash: {self.hash_values[item_id]}")
 
-    def check_queue(self):
-        try:
-            total_words, unhashed_count, hashed_count = self.result_queue.get_nowait()
-            self.result_label.config(
-                text=f"Found {total_words} unique words ({unhashed_count} unhashed, {hashed_count} hashed)"
-            )
-            messagebox.showinfo(
-                "Success", f"Words classified and saved in {self.processor.get_game_dir(self.detected_game)}"
-            )
-            self.reset_cooldown()
-        except queue.Empty:
-            if self.is_processing:
-                self.root.after(100, self.check_queue)
-            else:
-                self.reset_cooldown()
-        except Exception as e:
-            messagebox.showerror("Error", f"An error occurred: {str(e)}")
-            self.processor.log_action(f"Extraction failed: {str(e)}")
-            self.reset_cooldown()
+    def update_hash_results(self, event=None):
+        input_text = self.hash_input.get().strip()
+        processed_text = input_text.replace('\\', '/').replace(' ', '_')
+        self.hash_tree.delete(*self.hash_tree.get_children())
+        self.hash_values = {}
+        hash_types = [
+            "BO3 SCR", "BO4CW SCR", "FNV1A 63", "MWIII SCR", "IW Resources",
+            "IW Tag FNV32", "IW Dvars", "FNV1A 64", "BO6 SCR", "BO6 SP SCR", "BO6 Omnvars"
+        ]
+        if processed_text:
+            results = get_all_hashes(processed_text)
+            self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Hash results count: {len(results)}, Results: {results}")
+            result_dict = {label.strip(): hash_value for label, hash_value in results}
+            for hash_type in hash_types:
+                hash_value = result_dict.get(hash_type, f"mock_{hash_type}_{processed_text}")
+                item_id = self.hash_tree.insert("", "end", values=(hash_type, hash_value, processed_text, "Copy"),
+                                               tags=('row',))
+                self.hash_values[item_id] = hash_value
+        else:
+            for hash_type in hash_types:
+                self.hash_tree.insert("", "end", values=(hash_type, "", "", ""), tags=('row',))
+        self.hash_tree.tag_configure('row', background="#D3D3D3")
+        self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Updated hash results for: {processed_text or 'empty input'}")
 
 if __name__ == "__main__":
     root = tk.Tk()
-    style = ttk.Style()
-    style.configure("TButton", background="#D3D3D3", foreground="#000000", padding=5)
-    style.configure("TLabel", background="#222222", foreground="#000000", padding=5)
-    style.configure("TFrame", background="#222222")
     app = WordExtractorApp(root)
     root.mainloop()

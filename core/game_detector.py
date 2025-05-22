@@ -1,18 +1,34 @@
 import re
 import os
-from cod_hashes import (
+from core.cod_hashes import (
     base_fnv1a_63, base_fnv1a_64, base_fnv1a_32,
     iw_resources, mwii_iii_scr, black_ops_3_scr, hash_bo4cw_scr,
     iw_dvars, black_ops_6_scr, black_ops_6_omnvars, black_ops_6_sp_scr
 )
 
-def detect_game(folder):
-    bo3_names = ['t7', 'bo3', 'blackops3', 'blackops-3', 'black-ops-3']
-    bo4_names = ['t8', 'bo4', 'blackops4', 'blackops-4', 'black-ops-4']
-    bocw_names = ['t9', 'cw', 'coldwar', 'bocw', 'blackopscoldwar', 'cold-war', 'black-ops-cold-war']
-    mwiii_names = ['jup', 'mwiii', 'modernwarfareiii', 'modern-warfare-iii']
-    bo6_names = ['t10', 'bo6', 'blackops6', 'black-ops-6']
+def log_to_file(message, log_file="debug.log"):
+    with open(log_file, 'a', encoding='utf-8') as f:
+        f.write(f"{message}\n")
 
+def detect_game(folder):
+    # Game identifiers
+    game_identifiers = {
+        'Black Ops 3': ['t7', 'bo3', 'blackops3', 'blackops-3', 'black-ops-3'],
+        'Black Ops 4': ['t8', 'bo4', 'blackops4', 'blackops-4', 'black-ops-4'],
+        'Black Ops Cold War': ['t9', 'cw', 'coldwar', 'bocw', 'blackopscoldwar', 'cold-war', 'black-ops-cold-war'],
+        'Modern Warfare III': ['jup', 'mwiii', 'modernwarfareiii', 'modern-warfare-iii'],
+        'Black Ops 6': ['t10', 'bo6', 'blackops6', 'black-ops-6']
+    }
+
+    # Check the last folder name first
+    last_folder = os.path.basename(os.path.normpath(folder)).lower()
+    log_to_file(f"Checking last folder name: {last_folder} in {folder}")
+    for game, identifiers in game_identifiers.items():
+        if last_folder in identifiers:
+            log_to_file(f"Detected game '{game}' based on last folder: {last_folder}")
+            return game
+
+    # Fallback to word-based detection
     found_words = set(re.findall(r'\w+', folder.lower()))
     try:
         for root_dir, _, files in os.walk(folder):
@@ -21,15 +37,18 @@ def detect_game(folder):
                 found_words.update(re.findall(r'\w+', file.lower()))
             break
     except Exception as e:
+        log_to_file(f"Error walking folder {folder}: {str(e)}")
         return "Unknown"
 
+    log_to_file(f"Found words in folder {folder}: {found_words}")
     def matches(words, patterns): return any(name in words for name in patterns)
 
-    if matches(found_words, bo3_names): return "Black Ops 3"
-    if matches(found_words, bo4_names): return "Black Ops 4"
-    if matches(found_words, bocw_names): return "Black Ops Cold War"
-    if matches(found_words, mwiii_names): return "Modern Warfare III"
-    if matches(found_words, bo6_names): return "Black Ops 6"
+    for game, identifiers in game_identifiers.items():
+        if matches(found_words, identifiers):
+            log_to_file(f"Detected game '{game}' based on word match")
+            return game
+
+    log_to_file(f"No game detected for folder {folder}")
     return "Unknown"
 
 def get_default_hash_function(game):
@@ -55,16 +74,16 @@ def get_game_specific_header(game):
     if game == "Modern Warfare III":
         return "Word\tBase FNV1A 63\tIW Resources\tMWIII Scr\tIW Dvars\n"
     if game == "Black Ops 6":
-        return "Word\tBase FNV1A 64\tIW Resources\tBlack Ops 6 Scr\tBlack Ops 6 SP Scr\tBlack Ops 6 Omnvars\tIW Dvars\n"
+        return "Word\tBase FNV1A 64\tIW Resources\tBlack Ops 6 Scr\tBlack Ops 6 SP Scr\tIW Dvars\n"
     if game == "Unknown":
         return "Word\n"
     return "Word\n"
 
-def get_game_specific_hashes(word, game):
+def get_game_specific_hashes(word, game, is_sp_folder=False):
     word = word.strip()
     if not word:
         return ""
-    h = lambda fn: f"{fn(word):016x}" if fn.__name__.endswith("_63") or fn.__name__.endswith("_64") else f"{fn(word):08x}"
+    h = lambda fn: hex(fn(word))[2:] if fn.__name__.endswith("_63") or fn.__name__.endswith("_64") else hex(fn(word))[2:].zfill(8)
 
     if game == "Black Ops 3":
         return f"{word}\t{h(black_ops_3_scr)}\n"
@@ -75,7 +94,8 @@ def get_game_specific_hashes(word, game):
     if game == "Modern Warfare III":
         return f"{word}\t{h(base_fnv1a_63)}\t{h(iw_resources)}\t{h(mwii_iii_scr)}\t{h(iw_dvars)}\n"
     if game == "Black Ops 6":
-        return f"{word}\t{h(base_fnv1a_64)}\t{h(iw_resources)}\t{h(black_ops_6_scr)}\t{h(black_ops_6_sp_scr)}\t{h(black_ops_6_omnvars)}\t{h(iw_dvars)}\n"
+        scr_hash = black_ops_6_sp_scr if is_sp_folder else black_ops_6_scr
+        return f"{word}\t{h(base_fnv1a_64)}\t{h(iw_resources)}\t{h(scr_hash)}\t{h(black_ops_6_sp_scr)}\t{h(iw_dvars)}\n"
     if game == "Unknown":
         return f"{word}\n"
     return ""
@@ -85,7 +105,6 @@ def get_all_hashes(word):
     if not word:
         return []
 
-    # Define all hash functions in the specified order with standardized labels (12 characters each)
     hash_functions = [
         ("BO3 SCR     ", black_ops_3_scr),
         ("BO4CW SCR   ", hash_bo4cw_scr),
@@ -100,13 +119,9 @@ def get_all_hashes(word):
         ("BO6 Omnvars ", black_ops_6_omnvars),
     ]
 
-    # Compute hashes using all functions
     results = []
     for label, func in hash_functions:
-        if func.__name__.endswith("_63") or func.__name__.endswith("_64"):
-            hash_value = f"{func(word):016x}"  # 16 characters for 63/64-bit hashes
-        else:
-            hash_value = f"{func(word):08x}"   # 8 characters for 32-bit hashes
-        results.append((label, hash_value))
+        hash_value = hex(func(word))[2:] if func.__name__.endswith("_63") or func.__name__.endswith("_64") else hex(func(word))[2:].zfill(8)
+        results.append((label, hash_value.lstrip('0') or '0'))
 
     return results
