@@ -10,14 +10,14 @@ import re
 def setup_game_extract_tab(app, tab):
     frame = tk.Frame(tab, **app.frame_style)
     frame.pack(pady=10, padx=10, fill="both", expand=True)
-    ttk.Label(frame, text="Select Scripts Folder:", background="#222222", foreground="#E07B00").pack(pady=5)
+    ttk.Label(frame, text="Select Scripts Folder:", background="#222222", foreground="#E07B00", font=("TkDefaultFont", 14, "bold")).pack(pady=5)
     app.folder_entry = tk.Entry(frame, textvariable=app.folder_path, width=50,
                                 fg="#E07B00", bg="#333333",
                                 selectbackground="#FFD700", selectforeground="#E07B00")
     app.folder_entry.pack(pady=5)
     app.browse_button = ttk.Button(frame, text="Browse", command=app.select_folder, style="TButton")
     app.browse_button.pack(pady=5)
-    app.game_label = ttk.Label(frame, text=f"Game: {app.detected_game}", style="TLabel")
+    app.game_label = ttk.Label(frame, text=f"Game: {app.detected_game}", style="TLabel", font=("TkDefaultFont", 16, "bold"))
     app.game_label.pack(pady=10)
     app.extract_button = ttk.Button(frame, text="Extract Scripts Data", command=app.run_extraction, style="TButton")
     app.extract_button.pack(pady=5)

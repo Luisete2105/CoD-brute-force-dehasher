@@ -1,4 +1,3 @@
-/GSC Source/bo6-source-main.zip
 # Folders that were used by no UI version
 GSC Source/
 zGSC Source/
@@ -9,7 +8,7 @@ __pycache__/
 *$py.class
 
 # Personal files
-settings.json
+config.json
 updater.py
 debug.log
 lui.txt

@@ -8,10 +8,11 @@ from utils.config_manager import ConfigManager
 from core.script_processor import ScriptProcessor
 from core.game_detector import detect_game, get_all_hashes
 from gui.gui_tabs import setup_game_extract_tab, setup_hash_tab, setup_csv_selection_ui
+from gui.brute_force_manager import setup_brute_force_tab
 from utils.gui_utils import update_console, load_log_contents, update_game_label, copy_to_clipboard
 from gui.extraction_manager import ExtractionManager
 
-class WordExtractorApp:
+class CodScriptManager:
     def __init__(self, root):
         self.root = root
         self.root.title("Call of Duty Script Manager (UI Beta)")
@@ -35,11 +36,16 @@ class WordExtractorApp:
         self.config_manager = ConfigManager()
         self.extraction_manager = ExtractionManager(self.log_queue, self.progress_queue)
 
+        # Load last folder and brute force settings
         last_folder = self.config_manager.get_folder()
         if last_folder and os.path.exists(last_folder):
             self.folder_path.set(last_folder)
             self.detected_game = detect_game(last_folder)
-            self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Loaded last folder from settings.json: {last_folder}\nDetected game: {self.detected_game}")
+            self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Loaded last folder from config.json: {last_folder}\nDetected game: {self.detected_game}")
+
+        # Initialize brute force settings
+        self.selected_algorithms, self.excluded_characters = self.config_manager.get_brute_force_config()
+        self.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Loaded brute force settings: Algorithms={self.selected_algorithms}, Excluded Characters={''.join(self.excluded_characters)}")
 
         self.button_style = {
             "bg": "#D3D3D3", "fg": "#000000",
@@ -78,12 +84,15 @@ class WordExtractorApp:
 
         self.game_frame = ttk.Frame(notebook, style="TFrame")
         hash_frame = ttk.Frame(notebook, style="TFrame")
+        brute_force_frame = ttk.Frame(notebook, style="TFrame")
 
         notebook.add(self.game_frame, text="Game & Extraction")
         notebook.add(hash_frame, text="Hash Display")
+        notebook.add(brute_force_frame, text="Brute Force")
 
         setup_game_extract_tab(self, self.game_frame)
         setup_hash_tab(self, hash_frame)
+        setup_brute_force_tab(self, brute_force_frame)
 
         self.console_frame = tk.Frame(self.root, bg="#222222")
         self.console_frame.pack(fill="both", padx=10, pady=(5, 10), expand=True)
@@ -117,7 +126,7 @@ class WordExtractorApp:
         folder = filedialog.askdirectory()
         if folder:
             self.folder_path.set(folder)
-            self.config_manager.save_config(folder)
+            self.config_manager.save_folder(folder)
             self.detected_game = detect_game(folder)
             update_game_label(self)
             self.update_button_states()
@@ -219,5 +228,5 @@ class WordExtractorApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = WordExtractorApp(root)
+    app = CodScriptManager(root)
     root.mainloop()

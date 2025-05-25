@@ -143,8 +143,8 @@ class ScriptProcessor:
 
             with mp.Pool(processes=cpu_count) as pool:
                 process_func = partial(self.file_processor.process_file, detected_game=detected_game,
-                                      keywords=keywords, tokens=tokens, valid_exts=valid_exts,
-                                      supported_resources=supported_resources)
+                                        keywords=keywords, tokens=tokens, valid_exts=valid_exts,
+                                        supported_resources=supported_resources)
                 for i, result in enumerate(pool.imap_unordered(process_func, files, chunksize=chunk_size)):
                     (uw, hw, hqs, hsp, khm, nhqs, iwr, idv, omn, phs) = result
                     unhashed_words.extend(uw)
