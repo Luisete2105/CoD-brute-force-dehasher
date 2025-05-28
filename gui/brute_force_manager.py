@@ -248,6 +248,7 @@ def start_brute_force(app):
     app.cached_hashes = set()
     app.prefixes = []
     app.suffixes = []
+    app.prefix_hashes = {}  # Store precomputed prefix hashes
     root_folder = os.path.dirname(os.path.abspath(__file__)).rsplit('gui', 1)[0]
     
     # Load prefixes and suffixes from selected CSVs
@@ -260,7 +261,7 @@ def start_brute_force(app):
                     next(reader, None)  # Skip header
                     for row in reader:
                         if row and row[0]:
-                            app.prefixes.append(row[0])
+                            app.prefixes.append(row[0].lower())  # Ensure lowercase
                 app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Loaded {len(app.prefixes)} prefixes from {prefix_csv}")
             except Exception as e:
                 app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error loading prefix CSV {prefix_csv}: {str(e)}")
@@ -276,13 +277,61 @@ def start_brute_force(app):
                     next(reader, None)  # Skip header
                     for row in reader:
                         if row and row[0]:
-                            app.suffixes.append(row[0])
+                            app.suffixes.append(row[0].lower())  # Ensure lowercase
                 app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Loaded {len(app.suffixes)} suffixes from {suffix_csv}")
             except Exception as e:
                 app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error loading suffix CSV {suffix_csv}: {str(e)}")
         else:
             app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Suffix CSV not found: {suffix_csv}")
 
+    # Precompute prefix hashes for each algorithm
+    algo_to_func = {
+        "BO3 SCR": black_ops_3_scr,
+        "BO4CW SCR": hash_bo4cw_scr,
+        "FNV1A 63": base_fnv1a_63,
+        "MWIII SCR": mwii_iii_scr,
+        "IW Resources": iw_resources,
+        "IW Tag FNV32": base_fnv1a_32,
+        "IW Dvars": iw_dvars,
+        "FNV1A 64": base_fnv1a_64,
+        "BO6 SCR": black_ops_6_scr,
+        "BO6 SP SCR": black_ops_6_sp_scr,
+        "BO6 Omnvars": black_ops_6_omnvars
+    }
+    for algo in app.selected_algorithms:
+        app.prefix_hashes[algo] = {}
+        hash_func = algo_to_func.get(algo)
+        if not hash_func:
+            app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] No hash function for {algo}")
+            continue
+        for prefix in app.prefixes or ['']:
+            if prefix:
+                # Compute partial hash for prefix
+                if algo in ["IW Dvars", "BO6 SCR", "BO6 Omnvars"]:
+                    # For secure hashes, include first character and SEC_STRING
+                    if len(prefix) >= 1:
+                        sec_string = {
+                            "IW Dvars": "q6n-+7=tyytg94_*",
+                            "BO6 SCR": "zt@f3yp(d[kkd=_@",
+                            "BO6 Omnvars": "gvbs9*vpm@mh@krh"
+                        }.get(algo, "")
+                        modified_prefix = prefix[0] + sec_string + prefix[1:]
+                    else:
+                        modified_prefix = prefix
+                    hash_val = hash_func(modified_prefix)
+                elif algo == "BO6 SP SCR":
+                    # For BO6 SP SCR, append SEC_STRING
+                    sec_string = "zt@f3yp(d[kkd=_@"
+                    modified_prefix = prefix + sec_string
+                    hash_val = hash_func(modified_prefix)
+                else:
+                    hash_val = hash_func(prefix)
+                app.prefix_hashes[algo][prefix] = hash_val
+                app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Precomputed hash for {algo}, prefix={prefix}, hash={hex(hash_val)[2:]}")
+            else:
+                app.prefix_hashes[algo][''] = None  # No prefix case
+
+    # Load cached hashes from CSVs
     for algo in app.selected_algorithms:
         found_csv = False
         if algo in algo_to_csvs:
@@ -327,7 +376,7 @@ def start_brute_force(app):
     app.is_brute_force_running = True
     update_button_states(app)
 
-    start_string = app.custom_start_string_entry.get().strip()
+    start_string = app.custom_start_string_entry.get().strip().lower()  # Ensure lowercase
     app.last_hashed_string = start_string or ""
     start_length = max(1, len(start_string))
 
@@ -338,7 +387,7 @@ def start_brute_force(app):
         app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Brute force failed: Invalid start string")
         return
 
-    app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starting brute force: Algorithms={', '.join(app.selected_algorithms)}, Chars={''.join(app.allowed_chars)}, Start={start_string or 'None'}, Length={start_length}, Prefix CSV={prefix_csv or 'None'}, Suffix CSV={suffix_csv or 'None'}, Filters=[Uncommon={'on' if app.disable_uncommon_combinations.get() else 'off'}, Vowel={'on' if app.require_vowel.get() else 'off'}, Symbols={'on' if app.no_consecutive_symbols.get() else 'off'}, Triple={'on' if app.no_triple_rule.get() else 'off'}, FourVowels={'on' if app.no_four_vowels.get() else 'off'}, FourNonConsonants={'on' if app.no_four_non_consonants.get() else 'off'}, ThreeUncommonNonConsonants={'on' if app.no_three_uncommon_non_consonants.get() else 'off'}]")
+    app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starting brute force: Algorithms={', '.join(app.selected_algorithms)}, Chars={''.join(app.allowed_chars)}, Start={start_string or 'None'}, Length={start_length}, Prefix CSV={prefix_csv or 'None'}, Suffix CSV={suffix_csv or 'None'}, Filters=[Uncommon={'on' if app.disable_uncommon_combinations.get() else 'off'}, Vowel={'on' if app.require_vowel.get() else 'off'}, Symbols={'on' if app.no_consecutive_symbols.get() else 'off'}, Triple={'on' if app.no_triple_rule.get() else 'off'}, FourVowels={'on' if app.no_four_vowels.get() else 'off'}, FourNonCon QQConsonants={'on' if app.no_four_non_consonants.get() else 'off'}, ThreeUncommonNonConsonants={'on' if app.no_three_uncommon_non_consonants.get() else 'off'}]")
 
     app.brute_force_length = start_length
     app.brute_force_iterator = itertools.product(app.allowed_chars, repeat=start_length)
@@ -448,69 +497,133 @@ def brute_force_step(app):
 
         root_folder = os.path.dirname(os.path.abspath(__file__)).rsplit('gui', 1)[0]
 
-        for current_string in valid_strings:
-            # Generate all combinations: string, prefix+string, string+suffix, prefix+string+suffix
-            combinations = [current_string]
-            for prefix in app.prefixes or ['']:
-                for suffix in app.suffixes or ['']:
-                    if prefix:
-                        combinations.append(prefix + current_string)
-                    if suffix:
-                        combinations.append(current_string + suffix)
-                    if prefix and suffix:
-                        combinations.append(prefix + current_string + suffix)
+        def compute_hash(algo, prefix, string, suffix):
+            """Compute hash for a prefix + string + suffix combination."""
+            hash_func = algo_to_func[algo]
+            if algo in ["IW Dvars", "BO6 SCR", "BO6 Omnvars"]:
+                # Secure hash: insert SEC_STRING after first character
+                sec_string = {
+                    "IW Dvars": "q6n-+7=tyytg94_*",
+                    "BO6 SCR": "zt@f3yp(d[kkd=_@",
+                    "BO6 Omnvars": "gvbs9*vpm@mh@krh"
+                }.get(algo, "")
+                combo = (prefix or '') + string
+                if len(combo) >= 1:
+                    modified_combo = combo[0] + sec_string + combo[1:] + (suffix or '')
+                else:
+                    modified_combo = combo + (suffix or '')
+                hash_val = hash_func(modified_combo)
+            elif algo == "BO6 SP SCR":
+                # Secure hash with suffix: append SEC_STRING
+                sec_string = "zt@f3yp(d[kkd=_@"
+                modified_combo = (prefix or '') + string + sec_string + (suffix or '')
+                hash_val = hash_func(modified_combo)
+            else:
+                # Standard hash
+                combo = (prefix or '') + string + (suffix or '')
+                hash_val = hash_func(combo)
+            return hash_val
 
-            # Display only the base string, not the combination
+        def save_hash_match(algo, combo, hash_value):
+            """Save a hash match to the appropriate CSV file."""
+            datatype = algo_to_datatype.get(algo, "unknown")
+            for game in algo_to_csvs[algo]["games"]:
+                game_folder = os.path.join(root_folder, game)
+                if not os.path.exists(game_folder):
+                    continue
+                found_csv = os.path.join(game_folder, f"{datatype}_found.csv")
+                is_duplicate = False
+                if os.path.exists(found_csv):
+                    try:
+                        with open(found_csv, 'r', encoding='utf-8') as f:
+                            reader = csv.reader(f)
+                            header = next(reader, None)
+                            if header and header[0] == "hash":
+                                for row in reader:
+                                    if row and row[0] == hash_value:
+                                        is_duplicate = True
+                                        app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Duplicate match in {found_csv}: {hash_value}")
+                                        logging.debug(f"Duplicate match in {found_csv}: {hash_value}")
+                                        break
+                    except Exception as e:
+                        app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error reading {found_csv}: {str(e)}")
+                        logging.debug(f"Error reading {found_csv}: {str(e)}")
+
+                if not is_duplicate:
+                    try:
+                        file_exists = os.path.exists(found_csv)
+                        with open(found_csv, 'a', newline='', encoding='utf-8') as f:
+                            writer = csv.writer(f)
+                            if not file_exists:
+                                writer.writerow(["hash", "data"])
+                            writer.writerow([hash_value, combo])
+                        app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Saved match to {found_csv}")
+                        logging.debug(f"Saved match to {found_csv}")
+                    except Exception as e:
+                        app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error writing to {found_csv}: {str(e)}")
+                        logging.debug(f"Error writing to {found_csv}: {str(e)}")
+
+        for current_string in valid_strings:
+            # Update GUI with current string
             app.current_string_label.config(text=f"Current String: {current_string}")
             app.last_hashed_string = current_string
             app.root.update()
 
-            for combo in combinations:
-                for algo in app.selected_algorithms:
-                    if algo in algo_to_func:
-                        hash_func = algo_to_func[algo]
-                        hash_value = hex(hash_func(combo))[2:].lstrip('0') or '0'
+            # Generate all combinations: string, prefix+string, string+suffix, prefix+string+suffix
+            for algo in app.selected_algorithms:
+                hash_func = algo_to_func.get(algo)
+                if not hash_func:
+                    continue
+
+                # 1. Check string alone
+                hash_val = compute_hash(algo, '', current_string, '')
+                hash_value = hex(hash_val)[2:].lstrip('0') or '0'
+                if algo not in ["FNV1A 63", "FNV1A 64", "BO6 SCR", "BO6 SP SCR", "IW Resources", "IW Dvars", "BO6 Omnvars"]:
+                    hash_value = hash_value.zfill(8)
+                if hash_value in app.cached_hashes:
+                    app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Match: {algo}, String={current_string}, Hash={hash_value}")
+                    logging.debug(f"Match: {algo}, String={current_string}, Hash={hash_value}")
+                    save_hash_match(algo, current_string, hash_value)
+
+                # 2. Check prefix + string
+                for prefix in app.prefixes or ['']:
+                    if prefix:
+                        hash_val = compute_hash(algo, prefix, current_string, '')
+                        hash_value = hex(hash_val)[2:].lstrip('0') or '0'
                         if algo not in ["FNV1A 63", "FNV1A 64", "BO6 SCR", "BO6 SP SCR", "IW Resources", "IW Dvars", "BO6 Omnvars"]:
                             hash_value = hash_value.zfill(8)
                         if hash_value in app.cached_hashes:
+                            combo = prefix + current_string
                             app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Match: {algo}, String={combo}, Hash={hash_value}")
                             logging.debug(f"Match: {algo}, String={combo}, Hash={hash_value}")
-                            datatype = algo_to_datatype.get(algo, "unknown")
-                            for game in algo_to_csvs[algo]["games"]:
-                                game_folder = os.path.join(root_folder, game)
-                                if not os.path.exists(game_folder):
-                                    continue
-                                found_csv = os.path.join(game_folder, f"{datatype}_found.csv")
-                                is_duplicate = False
-                                if os.path.exists(found_csv):
-                                    try:
-                                        with open(found_csv, 'r', encoding='utf-8') as f:
-                                            reader = csv.reader(f)
-                                            header = next(reader, None)
-                                            if header and header[0] == "hash":
-                                                for row in reader:
-                                                    if row and row[0] == hash_value:
-                                                        is_duplicate = True
-                                                        app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Duplicate match in {found_csv}: {hash_value}")
-                                                        logging.debug(f"Duplicate match in {found_csv}: {hash_value}")
-                                                        break
-                                    except Exception as e:
-                                        app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error reading {found_csv}: {str(e)}")
-                                        logging.debug(f"Error reading {found_csv}: {str(e)}")
+                            save_hash_match(algo, combo, hash_value)
 
-                                if not is_duplicate:
-                                    try:
-                                        file_exists = os.path.exists(found_csv)
-                                        with open(found_csv, 'a', newline='', encoding='utf-8') as f:
-                                            writer = csv.writer(f)
-                                            if not file_exists:
-                                                writer.writerow(["hash", "data"])
-                                            writer.writerow([hash_value, combo])
-                                        app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Saved match to {found_csv}")
-                                        logging.debug(f"Saved match to {found_csv}")
-                                    except Exception as e:
-                                        app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error writing to {found_csv}: {str(e)}")
-                                        logging.debug(f"Error writing to {found_csv}: {str(e)}")
+                # 3. Check string + suffix
+                for suffix in app.suffixes or ['']:
+                    if suffix:
+                        hash_val = compute_hash(algo, '', current_string, suffix)
+                        hash_value = hex(hash_val)[2:].lstrip('0') or '0'
+                        if algo not in ["FNV1A 63", "FNV1A 64", "BO6 SCR", "BO6 SP SCR", "IW Resources", "IW Dvars", "BO6 Omnvars"]:
+                            hash_value = hash_value.zfill(8)
+                        if hash_value in app.cached_hashes:
+                            combo = current_string + suffix
+                            app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Match: {algo}, String={combo}, Hash={hash_value}")
+                            logging.debug(f"Match: {algo}, String={combo}, Hash={hash_value}")
+                            save_hash_match(algo, combo, hash_value)
+
+                # 4. Check prefix + string + suffix
+                for prefix in app.prefixes or ['']:
+                    for suffix in app.suffixes or ['']:
+                        if prefix and suffix:
+                            hash_val = compute_hash(algo, prefix, current_string, suffix)
+                            hash_value = hex(hash_val)[2:].lstrip('0') or '0'
+                            if algo not in ["FNV1A 63", "FNV1A 64", "BO6 SCR", "BO6 SP SCR", "IW Resources", "IW Dvars", "BO6 Omnvars"]:
+                                hash_value = hash_value.zfill(8)
+                            if hash_value in app.cached_hashes:
+                                combo = prefix + current_string + suffix
+                                app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Match: {algo}, String={combo}, Hash={hash_value}")
+                                logging.debug(f"Match: {algo}, String={combo}, Hash={hash_value}")
+                                save_hash_match(algo, combo, hash_value)
 
         app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Scheduling next brute_force_step")
         logging.debug("Scheduling next brute_force_step")
@@ -520,7 +633,7 @@ def brute_force_step(app):
         app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error in brute force: {str(e)}")
         logging.debug(f"Error in brute force: {str(e)}")
         stop_brute_force(app)
-
+        
 def setup_brute_force_tab(app, tab):
     frame = tk.Frame(tab, bg="#222222")
     frame.pack(pady=10, padx=10, fill="both", expand=True)
