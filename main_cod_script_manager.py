@@ -12,6 +12,7 @@ from gui.brute_force_manager import setup_brute_force_tab
 from utils.gui_utils import update_console, load_log_contents, update_game_label, copy_to_clipboard
 from gui.extraction_manager import ExtractionManager
 
+
 class CodScriptManager:
     def __init__(self, root):
         self.root = root

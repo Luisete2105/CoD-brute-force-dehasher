@@ -92,6 +92,18 @@ def setup_csv_selection_ui(app, parent, csv_list=None, game_short_name=None, out
 
     app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Initializing CSV buttons for game: {app.detected_game}, CSV count: {len(csv_list)}")
 
+    # Update prefix and suffix comboboxes
+    if hasattr(app, 'prefix_csv_combobox') and hasattr(app, 'suffix_csv_combobox'):
+        csv_list_with_none = ["None"] + csv_list
+        app.prefix_csv_combobox['values'] = csv_list_with_none
+        app.suffix_csv_combobox['values'] = csv_list_with_none
+        # Ensure current selections are valid
+        if app.prefix_csv.get() not in csv_list_with_none:
+            app.prefix_csv.set("None")
+        if app.suffix_csv.get() not in csv_list_with_none:
+            app.suffix_csv.set("None")
+        app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Updated prefix/suffix comboboxes with {len(csv_list)} CSVs")
+
     # Sort and Check buttons
     def sort_selected_csvs():
         if not app.selected_csvs:
@@ -210,6 +222,12 @@ def setup_csv_selection_ui(app, parent, csv_list=None, game_short_name=None, out
                 else:
                     app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Cannot select unavailable CSV: {csv_name}")
             app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Current selected CSVs: {', '.join(app.selected_csvs) if app.selected_csvs else 'None'}")
+            # Update prefix/suffix comboboxes
+            if hasattr(app, 'prefix_csv_combobox') and hasattr(app, 'suffix_csv_combobox'):
+                csv_list_with_none = ["None"] + csv_list
+                app.prefix_csv_combobox['values'] = csv_list_with_none
+                app.suffix_csv_combobox['values'] = csv_list_with_none
+                app.log_queue.put(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Updated prefix/suffix comboboxes after CSV toggle")
 
         max_per_column = 3
         use_nogame_style = app.detected_game == "Unknown"

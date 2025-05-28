@@ -14,7 +14,8 @@ logging.basicConfig(
 class ConfigManager:
     def __init__(self, config_path: str = "config.json"):
         self.config_path = config_path
-        self.default_folder = os.path.dirname(os.path.abspath(__file__)).rsplit('gui', 1)[0]
+        self.default_folder = os.path.dirname(os.path.abspath(__file__)).rsplit('utils', 1)[0]
+        self.config = self.load_config()
 
     def load_config(self) -> dict:
         """
@@ -25,7 +26,15 @@ class ConfigManager:
             "selected_algorithms": [],
             "excluded_characters": [],
             "last_hashed_string": None,
+            "prefix_csv": "",
+            "suffix_csv": "",
             "disable_uncommon_combinations": False,
+            "require_vowel": False,
+            "no_consecutive_symbols": False,
+            "no_triple_rule": False,
+            "no_four_vowels": False,
+            "no_four_non_consonants": False,
+            "no_three_uncommon_non_consonants": False,
             "last_folder": self.default_folder
         }
         try:
@@ -49,7 +58,15 @@ class ConfigManager:
         selected_algorithms: List[str],
         excluded_characters: List[str],
         last_string: Optional[str] = None,
-        disable_uncommon_combinations: bool = False
+        prefix_csv: str = "",
+        suffix_csv: str = "",
+        disable_uncommon_combinations: bool = False,
+        require_vowel: bool = False,
+        no_consecutive_symbols: bool = False,
+        no_triple_rule: bool = False,
+        no_four_vowels: bool = False,
+        no_four_non_consonants: bool = False,
+        no_three_uncommon_non_consonants: bool = False
     ) -> None:
         """
         Save brute force configuration to config.json.
@@ -61,7 +78,15 @@ class ConfigManager:
                 "selected_algorithms": selected_algorithms,
                 "excluded_characters": excluded_characters,
                 "last_hashed_string": last_string,
-                "disable_uncommon_combinations": disable_uncommon_combinations
+                "prefix_csv": prefix_csv,
+                "suffix_csv": suffix_csv,
+                "disable_uncommon_combinations": disable_uncommon_combinations,
+                "require_vowel": require_vowel,
+                "no_consecutive_symbols": no_consecutive_symbols,
+                "no_triple_rule": no_triple_rule,
+                "no_four_vowels": no_four_vowels,
+                "no_four_non_consonants": no_four_non_consonants,
+                "no_three_uncommon_non_consonants": no_three_uncommon_non_consonants
             })
             self.save_config(config)
             logging.info(f"Saved brute force config: {config}")
